@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Каркас модуля. Реализация планировщика (Windows Task Scheduler) будет на этапе 4. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>JustInTime.Scheduler</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JustInTime.Core\JustInTime.Core.csproj" />
+  </ItemGroup>
+
+</Project>

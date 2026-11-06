@@ -1,0 +1,19 @@
+## .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userprefs
+*.log
+TestResults/
+.idea/
+
+## Секреты и локальные настройки: в Git не попадают
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pfx
+
+## Логи приложения (на случай запуска из папки проекта)
+logs/

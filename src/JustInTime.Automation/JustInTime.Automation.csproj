@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Каркас модуля. Windows UI Automation будет на этапе 6. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>JustInTime.Automation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JustInTime.Core\JustInTime.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,58 @@
+<Window x:Class="JustInTime.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:JustInTime.App.ViewModels"
+        xmlns:views="clr-namespace:JustInTime.App.Views"
+        Title="JustInTime"
+        Width="1180"
+        Height="720"
+        MinWidth="820"
+        MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        FontSize="14">
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <views:DashboardView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
+            <views:PlaceholderView />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Боковая навигация -->
+        <Border Grid.Column="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,1,0">
+            <DockPanel Margin="16">
+                <StackPanel DockPanel.Dock="Top" Margin="8,8,8,28">
+                    <TextBlock Text="JustInTime" Style="{StaticResource H1}" FontSize="22" />
+                    <TextBlock Text="Планировщик действий" Style="{StaticResource Muted}" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <ListBox ItemsSource="{Binding NavItems}"
+                         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                         DisplayMemberPath="Title"
+                         ItemContainerStyle="{StaticResource NavItemStyle}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+            </DockPanel>
+        </Border>
+
+        <!-- Текущая страница -->
+        <ContentControl Grid.Column="1"
+                        Content="{Binding Navigation.CurrentViewModel}"
+                        IsTabStop="False" />
+    </Grid>
+</Window>

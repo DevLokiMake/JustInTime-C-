@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>JustInTime.App</RootNamespace>
+    <AssemblyName>JustInTime</AssemblyName>
+    <UserSecretsId>justintime-8f3a2c1e-4b7d-4e6a-9c55-2a1d0f7b9e31</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+    <!-- Нужен только для команд dotnet ef, в сборку приложения не попадает -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JustInTime.Core\JustInTime.Core.csproj" />
+    <ProjectReference Include="..\JustInTime.Infrastructure\JustInTime.Infrastructure.csproj" />
+    <ProjectReference Include="..\JustInTime.Scheduler\JustInTime.Scheduler.csproj" />
+    <ProjectReference Include="..\JustInTime.Automation\JustInTime.Automation.csproj" />
+    <ProjectReference Include="..\JustInTime.Messaging\JustInTime.Messaging.csproj" />
+    <ProjectReference Include="..\JustInTime.SystemControl\JustInTime.SystemControl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
