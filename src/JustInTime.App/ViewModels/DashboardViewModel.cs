@@ -108,6 +108,7 @@ public sealed partial class DashboardViewModel(
 
         var result = entry.Result switch
         {
+            null => "выполняется",
             ExecutionResult.Success => "успешно",
             ExecutionResult.Failed => "ошибка",
             ExecutionResult.Unknown => "результат неизвестен",

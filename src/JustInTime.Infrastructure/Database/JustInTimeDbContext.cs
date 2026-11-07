@@ -9,6 +9,8 @@ public sealed class JustInTimeDbContext(DbContextOptions<JustInTimeDbContext> op
 
     public DbSet<ExecutionHistory> ExecutionHistories => Set<ExecutionHistory>();
 
+    public DbSet<AppSetting> Settings => Set<AppSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(JustInTimeDbContext).Assembly);

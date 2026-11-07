@@ -15,6 +15,17 @@ public sealed class ExecutionHistoryRepository(IDbContextFactory<JustInTimeDbCon
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ExecutionHistory>> GetByTaskAsync(
+        Guid taskId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.ExecutionHistories
+            .AsNoTracking()
+            .Where(h => h.TaskId == taskId)
+            .OrderByDescending(h => h.StartedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ExecutionHistory>> GetRecentAsync(
         int count, CancellationToken cancellationToken = default)
     {

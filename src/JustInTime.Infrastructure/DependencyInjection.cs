@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton<ITaskRepository, TaskRepository>();
         services.AddSingleton<IExecutionHistoryRepository, ExecutionHistoryRepository>();
+        services.AddSingleton<ISettingsStore, SettingsRepository>();
 
         return services;
     }

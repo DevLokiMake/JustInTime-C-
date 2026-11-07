@@ -56,6 +56,27 @@ dotnet run --project src/JustInTime.App
 
 или открой `JustInTime.sln` в Visual Studio и запусти проект JustInTime.App (F5).
 
+## Миграции
+
+Каждое изменение моделей это новая миграция. Пример для этапа 2:
+
+```powershell
+dotnet ef migrations add AddSettingsAndNullableResult --project src/JustInTime.Infrastructure --startup-project src/JustInTime.App --output-dir Database/Migrations
+dotnet ef database update --project src/JustInTime.Infrastructure --startup-project src/JustInTime.App
+```
+
+Папку `src/JustInTime.Infrastructure/Database/Migrations` нужно хранить в Git.
+
+## Тесты
+
+Тесты работают на реальном PostgreSQL. Они сами создают и пересоздают базу `justintime_test`
+(рабочая `justintime_dev` не затрагивается) и берут пароль из тех же user-secrets.
+Нужны применённые миграции в проекте Infrastructure.
+
+```powershell
+dotnet test
+```
+
 ## Логи
 
 `%LocalAppData%\JustInTime\logs\justintime-YYYYMMDD.log`, хранятся 14 дней.
@@ -68,10 +89,22 @@ dotnet run --project src/JustInTime.App
 - При старте автоматически применяются миграции. Если PostgreSQL недоступен, приложение
   показывает точную ошибку и не падает.
 
+## Что добавлено на этапе 2
+
+- Таблица `Settings` и `ISettingsStore` (атомарная запись ключа, помощники для bool и int).
+- Атомарные операции над задачами в БД: запуск (`TryStartExecutionAsync`), завершение попытки,
+  отмена, изменение с перепланированием. Условие и смена статуса выполняются одним запросом.
+- Защита от двойного запуска: одну задачу может взять только один исполнитель.
+- Задача со статусом `NeedsUserAction` (неизвестный результат) не запускается автоматически,
+  чтобы не создать дубль сообщения.
+- `ExecutionHistory.Result` теперь nullable: пока попытка идёт, результата ещё нет.
+- Тесты репозиториев на реальном PostgreSQL (xUnit).
+
 ## Что пока не реализовано
 
 - Остальные разделы (My Tasks, Create Task и т.д.): открываются как страницы-заготовки.
-- Создание и выполнение задач, планировщик, уведомления.
+- Сервис задач с валидацией и экраны создания и редактирования (этап 3).
+- Планировщик, уведомления.
 - Мессенджеры, UI Automation, управление системой.
-- Таблица Settings и автотесты.
+- Тесты слоёв выше репозиториев (их пока нет, потому что нет самих слоёв).
 - Модули Scheduler, Automation, Messaging, SystemControl содержат только файл проекта.

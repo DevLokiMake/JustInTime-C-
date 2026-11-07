@@ -13,7 +13,8 @@ public class ExecutionHistory
 
     public DateTime? FinishedAt { get; set; }
 
-    public ExecutionResult Result { get; set; }
+    /// <summary>Итог попытки. Пока попытка идёт, значение null.</summary>
+    public ExecutionResult? Result { get; set; }
 
     public string? ErrorMessage { get; set; }
 

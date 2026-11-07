@@ -37,4 +37,30 @@ public static class ScheduledTaskStatuses
         ScheduledTaskStatus.Pending,
         ScheduledTaskStatus.Scheduled
     ];
+
+    /// <summary>
+    /// Задачу можно изменить или отменить: она не завершена и сейчас не выполняется.
+    /// Выполняющуюся задачу менять нельзя, чтобы не получить рассинхрон с уже идущим действием.
+    /// </summary>
+    public static readonly ScheduledTaskStatus[] Editable =
+    [
+        ScheduledTaskStatus.Pending,
+        ScheduledTaskStatus.Scheduled,
+        ScheduledTaskStatus.WaitingForUnlock,
+        ScheduledTaskStatus.WaitingForNetwork,
+        ScheduledTaskStatus.NeedsUserAction
+    ];
+
+    /// <summary>
+    /// Задачу можно запустить, когда наступило её время. NeedsUserAction сюда намеренно не входит:
+    /// если результат прошлой попытки неизвестен, автоматический повтор может создать дубль
+    /// (например, второе сообщение получателю).
+    /// </summary>
+    public static readonly ScheduledTaskStatus[] Startable =
+    [
+        ScheduledTaskStatus.Pending,
+        ScheduledTaskStatus.Scheduled,
+        ScheduledTaskStatus.WaitingForUnlock,
+        ScheduledTaskStatus.WaitingForNetwork
+    ];
 }
