@@ -37,6 +37,15 @@ public sealed class PostgresFixture : IAsyncLifetime
             throw new InvalidOperationException($"Тесты отказались работать с базой '{name}'.");
         }
 
+        // Без миграций MigrateAsync молча создаёт пустую базу, и тесты падают с непонятной ошибкой
+        // «отношение не существует». Поэтому проверяем заранее и говорим причину прямо.
+        if (!db.Database.GetMigrations().Any())
+        {
+            throw new InvalidOperationException(
+                "В проекте JustInTime.Infrastructure нет миграций: папка Database/Migrations отсутствует или пуста. " +
+                "Скопируйте её из предыдущей версии или создайте командой dotnet ef migrations add InitialCreate (см. README).");
+        }
+
         await db.Database.EnsureDeletedAsync();
         await db.Database.MigrateAsync();
     }
