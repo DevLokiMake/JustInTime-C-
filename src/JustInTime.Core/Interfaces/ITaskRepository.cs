@@ -37,6 +37,13 @@ public interface ITaskRepository
     Task<bool> TryCancelAsync(Guid id, DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Возвращает задачу со статусом Failed или NeedsUserAction в Pending с новым временем запуска.
+    /// Возвращает false, если задачи нет или её статус не позволяет повтор.
+    /// </summary>
+    Task<bool> TryRetryAsync(
+        Guid id, DateTime scheduledAtUtc, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Атомарно переводит задачу в Running, увеличивает счётчик попыток и создаёт запись истории.
     /// Возвращает запись истории, либо null, если запустить нельзя: время не наступило,
     /// статус не позволяет запуск или задачу уже взял другой исполнитель.

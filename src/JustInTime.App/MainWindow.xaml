@@ -18,6 +18,12 @@
         <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
             <views:DashboardView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MyTasksViewModel}">
+            <views:MyTasksView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TaskEditorViewModel}">
+            <views:TaskEditorView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
             <views:PlaceholderView />
         </DataTemplate>

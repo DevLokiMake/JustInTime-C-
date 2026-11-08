@@ -106,6 +106,26 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
         return affected > 0;
     }
 
+    public async Task<bool> TryRetryAsync(
+        Guid id, DateTime scheduledAtUtc, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        var retryable = ScheduledTaskStatuses.Retryable;
+
+        // Ошибка прошлой попытки остаётся в ExecutionHistory, поэтому в самой задаче её можно сбросить.
+        var affected = await db.Tasks
+            .Where(t => t.Id == id && retryable.Contains(t.Status))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.Pending)
+                    .SetProperty(t => t.ScheduledAt, scheduledAtUtc)
+                    .SetProperty(t => t.LastError, (string?)null)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        return affected > 0;
+    }
+
     public async Task<ExecutionHistory?> TryStartExecutionAsync(
         Guid id, DateTime nowUtc, CancellationToken cancellationToken = default)
     {

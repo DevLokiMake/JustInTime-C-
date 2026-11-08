@@ -103,11 +103,16 @@ public partial class App : Application
             {
                 services.AddInfrastructure(context.Configuration);
 
+                services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<IDashboardService, DashboardService>();
+                services.AddSingleton<ITaskService, TaskService>();
 
                 services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
+                services.AddTransient<MyTasksViewModel>();
+                services.AddTransient<TaskEditorViewModel>();
                 services.AddSingleton<MainWindow>();
             })
             .Build();

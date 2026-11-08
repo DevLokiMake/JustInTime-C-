@@ -1,0 +1,166 @@
+<UserControl x:Class="JustInTime.App.Views.TaskEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.25" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Левая колонка не шире 760, правая забирает остаток: форма прижата влево и сжимается вместе с окном -->
+        <Grid Margin="32,28,32,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="760" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+
+                <TextBlock Text="{Binding PageTitle}" Style="{StaticResource H1}" Margin="0,0,0,20" />
+
+                <!-- Ошибки -->
+                <Border Style="{StaticResource Banner}"
+                        Visibility="{Binding HasErrors, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl ItemsSource="{Binding Errors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           Foreground="{StaticResource DangerBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,1" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+
+                        <TextBlock Text="Название" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                        <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="200" />
+
+                        <TextBlock Text="Тип действия" Style="{StaticResource FieldLabel}" />
+                        <ListBox Style="{StaticResource ChipList}"
+                                 ItemsSource="{Binding ActionOptions}"
+                                 SelectedItem="{Binding SelectedAction, Mode=TwoWay}"
+                                 DisplayMemberPath="Title"
+                                 IsEnabled="{Binding CanChangeAction}" />
+
+                        <!-- Отправка сообщения -->
+                        <StackPanel Visibility="{Binding IsMessageAction, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Мессенджер" Style="{StaticResource FieldLabel}" />
+                            <ListBox Style="{StaticResource ChipList}"
+                                     ItemsSource="{Binding AppOptions}"
+                                     SelectedItem="{Binding SelectedApp, Mode=TwoWay}"
+                                     DisplayMemberPath="Title" />
+
+                            <TextBlock Text="Получатель (имя в списке контактов)" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding Recipient, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="200" />
+
+                            <TextBlock Text="Текст сообщения" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="96"
+                                     MaxLength="4000"
+                                     VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+
+                        <!-- Системная настройка -->
+                        <StackPanel Visibility="{Binding IsSystemAction, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Настройка" Style="{StaticResource FieldLabel}" />
+                            <ListBox Style="{StaticResource ChipList}"
+                                     ItemsSource="{Binding SettingOptions}"
+                                     SelectedItem="{Binding SelectedSetting, Mode=TwoWay}"
+                                     DisplayMemberPath="Title" />
+
+                            <TextBlock Text="Действие" Style="{StaticResource FieldLabel}" />
+                            <ListBox Style="{StaticResource ChipList}"
+                                     ItemsSource="{Binding SwitchOptions}"
+                                     SelectedItem="{Binding SelectedSwitch, Mode=TwoWay}"
+                                     DisplayMemberPath="Title" />
+                        </StackPanel>
+
+                        <!-- Запуск программы -->
+                        <StackPanel Visibility="{Binding IsProgramAction, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Путь к программе" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding ProgramPath, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="1000" />
+
+                            <TextBlock Text="Аргументы (необязательно)" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding ProgramArguments, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="2000" />
+                        </StackPanel>
+
+                        <!-- Открытие ссылки -->
+                        <StackPanel Visibility="{Binding IsUrlAction, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Ссылка" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="2000" />
+                        </StackPanel>
+
+                    </StackPanel>
+                </Border>
+
+                <!-- Время -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Когда выполнить" Style="{StaticResource H2}" />
+
+                        <ListBox Style="{StaticResource ChipList}"
+                                 Margin="0,14,0,0"
+                                 ItemsSource="{Binding ModeOptions}"
+                                 SelectedItem="{Binding SelectedMode, Mode=TwoWay}"
+                                 DisplayMemberPath="Title" />
+
+                        <StackPanel Visibility="{Binding IsDelayMode, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Через сколько минут" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
+                            <TextBox Text="{Binding DelayMinutesText, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="140"
+                                     HorizontalAlignment="Left"
+                                     MaxLength="7" />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding IsAtTimeMode, Converter={StaticResource BoolToVis}}">
+                            <WrapPanel Margin="0,6,0,0">
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="Дата (дд.мм.гггг)" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                                    <TextBox Text="{Binding DateText, UpdateSourceTrigger=PropertyChanged}"
+                                             Width="160"
+                                             MaxLength="10" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Время (чч:мм)" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                                    <TextBox Text="{Binding TimeText, UpdateSourceTrigger=PropertyChanged}"
+                                             Width="110"
+                                             MaxLength="5" />
+                                </StackPanel>
+                            </WrapPanel>
+                            <TextBlock Text="{Binding TimeZoneText}" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Content="{Binding SaveButtonText}"
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            Margin="0,0,8,0" />
+                    <Button Content="Отмена"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButton}" />
+                </StackPanel>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

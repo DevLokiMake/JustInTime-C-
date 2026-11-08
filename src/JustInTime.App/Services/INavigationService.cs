@@ -10,4 +10,7 @@ public interface INavigationService : INotifyPropertyChanged
     NavSection? CurrentSection { get; }
 
     void Navigate(NavSection section);
+
+    /// <summary>Открывает форму задачи в режиме редактирования.</summary>
+    void NavigateToEditor(Guid taskId);
 }

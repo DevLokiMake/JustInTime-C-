@@ -350,6 +350,60 @@ public sealed class TaskRepositoryTests(PostgresFixture db) : IAsyncLifetime
         Assert.Equal("исходное", (await _tasks.GetByIdAsync(task.Id))!.Title);
     }
 
+    // Повтор задачи
+
+    [Theory]
+    [InlineData(ScheduledTaskStatus.Failed)]
+    [InlineData(ScheduledTaskStatus.NeedsUserAction)]
+    public async Task Retry_moves_failed_or_unknown_task_back_to_pending(ScheduledTaskStatus status)
+    {
+        var task = NewTask(Now.AddHours(-1), status);
+        task.LastError = "сбой";
+        await _tasks.AddAsync(task);
+
+        Assert.True(await _tasks.TryRetryAsync(task.Id, Now, Now));
+
+        var loaded = await _tasks.GetByIdAsync(task.Id);
+        Assert.Equal(ScheduledTaskStatus.Pending, loaded!.Status);
+        Assert.Equal(Now, loaded.ScheduledAt);
+        Assert.Null(loaded.LastError);
+    }
+
+    [Theory]
+    [InlineData(ScheduledTaskStatus.Pending)]
+    [InlineData(ScheduledTaskStatus.Scheduled)]
+    [InlineData(ScheduledTaskStatus.Running)]
+    [InlineData(ScheduledTaskStatus.Completed)]
+    [InlineData(ScheduledTaskStatus.Cancelled)]
+    public async Task Retry_refuses_other_statuses(ScheduledTaskStatus status)
+    {
+        var task = NewTask(Now, status);
+        await _tasks.AddAsync(task);
+
+        Assert.False(await _tasks.TryRetryAsync(task.Id, Now, Now));
+        Assert.Equal(status, (await _tasks.GetByIdAsync(task.Id))!.Status);
+    }
+
+    [Fact]
+    public async Task Retry_keeps_previous_attempts_in_history()
+    {
+        var task = NewTask(Now);
+        await _tasks.AddAsync(task);
+        var first = (await _tasks.TryStartExecutionAsync(task.Id, Now.AddMinutes(1)))!;
+        await _tasks.FinishExecutionAsync(
+            first.Id, ExecutionResult.Failed, "сбой", ScheduledTaskStatus.Failed, Now.AddMinutes(2));
+
+        Assert.True(await _tasks.TryRetryAsync(task.Id, Now.AddMinutes(3), Now.AddMinutes(3)));
+        var second = await _tasks.TryStartExecutionAsync(task.Id, Now.AddMinutes(4));
+
+        Assert.NotNull(second);
+        Assert.Equal(2, second.AttemptNumber);
+
+        var history = await _history.GetByTaskAsync(task.Id);
+        Assert.Equal(2, history.Count);
+        Assert.Contains(history, h => h.Result == ExecutionResult.Failed && h.ErrorMessage == "сбой");
+    }
+
     // Журнал
 
     [Fact]

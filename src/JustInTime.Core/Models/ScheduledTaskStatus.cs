@@ -63,4 +63,22 @@ public static class ScheduledTaskStatuses
         ScheduledTaskStatus.WaitingForUnlock,
         ScheduledTaskStatus.WaitingForNetwork
     ];
+
+    /// <summary>Задача завершена и больше сама не выполнится.</summary>
+    public static readonly ScheduledTaskStatus[] Finished =
+    [
+        ScheduledTaskStatus.Completed,
+        ScheduledTaskStatus.Failed,
+        ScheduledTaskStatus.Cancelled
+    ];
+
+    /// <summary>
+    /// Задачу можно запустить повторно по явной команде пользователя.
+    /// Для NeedsUserAction интерфейс обязан предупредить о возможном дубле.
+    /// </summary>
+    public static readonly ScheduledTaskStatus[] Retryable =
+    [
+        ScheduledTaskStatus.Failed,
+        ScheduledTaskStatus.NeedsUserAction
+    ];
 }

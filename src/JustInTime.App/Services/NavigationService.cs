@@ -17,6 +17,8 @@ public sealed partial class NavigationService(
 
     public void Navigate(NavSection section)
     {
+        // Сначала ViewModel, потом раздел: MainViewModel реагирует на смену раздела
+        // вызовом Navigate, и эта проверка не даёт ему подменить только что открытую страницу.
         if (CurrentSection == section && CurrentViewModel is not null)
         {
             return;
@@ -25,8 +27,8 @@ public sealed partial class NavigationService(
         object viewModel = section switch
         {
             NavSection.Dashboard => services.GetRequiredService<DashboardViewModel>(),
-            NavSection.MyTasks => Placeholder("My Tasks", "Список задач с редактированием и отменой."),
-            NavSection.CreateTask => Placeholder("Create Task", "Форма создания задачи с полями под выбранный тип действия."),
+            NavSection.MyTasks => services.GetRequiredService<MyTasksViewModel>(),
+            NavSection.CreateTask => services.GetRequiredService<TaskEditorViewModel>(),
             NavSection.ScheduledMessages => Placeholder("Scheduled Messages", "Запланированные сообщения в WhatsApp и Telegram."),
             NavSection.Automation => Placeholder("Automation", "Настройки и состояние автоматизации."),
             NavSection.History => Placeholder("History", "Журнал выполненных действий."),
@@ -36,6 +38,21 @@ public sealed partial class NavigationService(
 
         logger.LogInformation("Переход в раздел {Section}", section);
 
+        Show(viewModel, section);
+    }
+
+    public void NavigateToEditor(Guid taskId)
+    {
+        var editor = services.GetRequiredService<TaskEditorViewModel>();
+        editor.BeginEdit(taskId);
+
+        logger.LogInformation("Редактирование задачи {TaskId}", taskId);
+
+        Show(editor, NavSection.CreateTask);
+    }
+
+    private void Show(object viewModel, NavSection section)
+    {
         CurrentViewModel = viewModel;
         CurrentSection = section;
 
