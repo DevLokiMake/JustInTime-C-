@@ -128,7 +128,9 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
         try
         {
             var result = await operation();
-            ErrorMessage = result.Succeeded ? null : result.ErrorText;
+            ErrorMessage = result.Succeeded
+                ? (result.Warnings.Count > 0 ? result.WarningText : null)
+                : result.ErrorText;
         }
         catch (Exception ex)
         {

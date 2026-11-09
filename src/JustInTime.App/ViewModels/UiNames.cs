@@ -5,14 +5,7 @@ namespace JustInTime.App.ViewModels;
 /// <summary>Русские названия для перечислений и параметров действий.</summary>
 public static class UiNames
 {
-    public static string Action(ActionType action) => action switch
-    {
-        ActionType.SendMessage => "Отправить сообщение",
-        ActionType.ToggleSystemSetting => "Системная настройка",
-        ActionType.LaunchProgram => "Запустить программу",
-        ActionType.OpenUrl => "Открыть ссылку",
-        _ => action.ToString()
-    };
+    public static string Action(ActionType action) => action.ToDisplayName();
 
     public static string Messenger(MessengerApp app) => app switch
     {

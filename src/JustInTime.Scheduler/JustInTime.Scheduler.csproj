@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Каркас модуля. Реализация планировщика (Windows Task Scheduler) будет на этапе 4. -->
+  <!-- Регистрация запусков задач в Планировщике заданий Windows (schtasks.exe). -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>JustInTime.Scheduler</RootNamespace>

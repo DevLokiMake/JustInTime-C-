@@ -38,6 +38,13 @@ public static class ScheduledTaskStatuses
         ScheduledTaskStatus.Scheduled
     ];
 
+    /// <summary>Задача уже запускалась, но ждёт условий (разблокировки или интернета) и будет запущена снова.</summary>
+    public static readonly ScheduledTaskStatus[] Waiting =
+    [
+        ScheduledTaskStatus.WaitingForUnlock,
+        ScheduledTaskStatus.WaitingForNetwork
+    ];
+
     /// <summary>
     /// Задачу можно изменить или отменить: она не завершена и сейчас не выполняется.
     /// Выполняющуюся задачу менять нельзя, чтобы не получить рассинхрон с уже идущим действием.

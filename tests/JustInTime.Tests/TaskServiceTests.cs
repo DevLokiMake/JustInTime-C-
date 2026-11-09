@@ -12,11 +12,12 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
     private readonly FixedTimeProvider _clock = new(Now);
     private readonly TaskRepository _repository = new(db.Factory);
     private readonly ExecutionHistoryRepository _history = new(db.Factory);
+    private readonly FakeTaskRegistrar _registrar = new();
     private TaskService _service = null!;
 
     public Task InitializeAsync()
     {
-        _service = new TaskService(_repository, _clock);
+        _service = new TaskService(_repository, _registrar, _clock);
         return db.ResetAsync();
     }
 
@@ -39,7 +40,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         Assert.NotNull(saved);
         Assert.Equal("Позвонить", saved.Title);
         Assert.Equal(ActionType.SendMessage, saved.ActionType);
-        Assert.Equal(ScheduledTaskStatus.Pending, saved.Status);
+        Assert.Equal(ScheduledTaskStatus.Scheduled, saved.Status);
         Assert.Equal(Now.AddMinutes(15), saved.ScheduledAt);
         Assert.Equal(Now, saved.CreatedAt);
         Assert.Equal(TimeZoneInfo.Utc.Id, saved.TimeZone);
@@ -100,7 +101,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         var saved = await _repository.GetByIdAsync(task.Id);
         Assert.Equal("Новое название", saved!.Title);
         Assert.Equal(Now.AddMinutes(120), saved.ScheduledAt);
-        Assert.Equal(ScheduledTaskStatus.Pending, saved.Status);
+        Assert.Equal(ScheduledTaskStatus.Scheduled, saved.Status);
         Assert.Equal(
             new SendMessagePayload(MessengerApp.Telegram, "Борис", "Эй"),
             TaskPayloadSerializer.Deserialize(saved.ActionType, saved.Payload));
@@ -182,7 +183,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         Assert.True(result.Succeeded);
 
         var saved = await _repository.GetByIdAsync(task.Id);
-        Assert.Equal(ScheduledTaskStatus.Pending, saved!.Status);
+        Assert.Equal(ScheduledTaskStatus.Scheduled, saved!.Status);
         Assert.Equal(Now, saved.ScheduledAt);
         Assert.Null(saved.LastError);
         Assert.NotNull(await _repository.TryStartExecutionAsync(task.Id, Now));
@@ -228,5 +229,69 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         Assert.Equal([active.Id], activeList.Select(t => t.Id).ToArray());
         Assert.Equal([cancelled.Id], finishedList.Select(t => t.Id).ToArray());
         Assert.Equal(2, (await _service.GetListAsync()).Count);
+    }
+
+    // Регистрация в системном планировщике
+
+    [Fact]
+    public async Task Create_registers_system_launch_and_marks_task_scheduled()
+    {
+        var result = await _service.CreateAsync(MessageInput());
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Warnings);
+        Assert.Contains(result.Value!.Id, _registrar.Registered);
+        Assert.Equal(ScheduledTaskStatus.Scheduled, (await _repository.GetByIdAsync(result.Value.Id))!.Status);
+    }
+
+    [Fact]
+    public async Task Create_keeps_task_pending_and_warns_when_system_scheduler_fails()
+    {
+        _registrar.FailRegister = true;
+
+        var result = await _service.CreateAsync(MessageInput());
+
+        Assert.True(result.Succeeded);
+        Assert.Single(result.Warnings);
+        Assert.Contains("Планировщик Windows", result.WarningText);
+        Assert.Equal(ScheduledTaskStatus.Pending, (await _repository.GetByIdAsync(result.Value!.Id))!.Status);
+    }
+
+    [Fact]
+    public async Task Cancel_removes_system_launch()
+    {
+        var created = await _service.CreateAsync(MessageInput());
+
+        var result = await _service.CancelAsync(created.Value!.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Warnings);
+        Assert.DoesNotContain(created.Value.Id, _registrar.Registered);
+    }
+
+    [Fact]
+    public async Task Cancel_succeeds_with_warning_when_system_launch_cannot_be_removed()
+    {
+        var created = await _service.CreateAsync(MessageInput());
+        _registrar.FailUnregister = true;
+
+        var result = await _service.CancelAsync(created.Value!.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Single(result.Warnings);
+        Assert.Equal(ScheduledTaskStatus.Cancelled, (await _repository.GetByIdAsync(created.Value.Id))!.Status);
+    }
+
+    [Fact]
+    public async Task Update_registers_new_time()
+    {
+        var created = await _service.CreateAsync(MessageInput());
+        _registrar.Registered.Clear();
+
+        var result = await _service.UpdateAsync(created.Value!.Id, MessageInput(schedule: new AfterDelaySchedule(90)));
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(created.Value.Id, _registrar.Registered);
+        Assert.Equal(Now.AddMinutes(90), _registrar.LastRegistered!.ScheduledAt);
     }
 }

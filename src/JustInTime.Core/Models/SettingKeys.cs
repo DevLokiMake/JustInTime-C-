@@ -5,4 +5,10 @@ public static class SettingKeys
 {
     /// <summary>Общий выключатель автоматизации. Если false, задачи не выполняются.</summary>
     public const string AutomationEnabled = "Automation.Enabled";
+
+    /// <summary>
+    /// На сколько минут задача может опоздать и всё равно выполниться. Если приложение или компьютер
+    /// были выключены дольше, задача помечается как пропущенная, чтобы не сработать невпопад.
+    /// </summary>
+    public const string MissedGraceMinutes = "Scheduler.MissedGraceMinutes";
 }

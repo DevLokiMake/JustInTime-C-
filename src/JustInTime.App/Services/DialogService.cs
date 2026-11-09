@@ -11,4 +11,7 @@ public sealed class DialogService : IDialogService
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No) == MessageBoxResult.Yes;
+
+    public void Warn(string title, string message) =>
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
 }

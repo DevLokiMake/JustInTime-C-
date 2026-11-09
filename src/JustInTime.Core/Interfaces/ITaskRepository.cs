@@ -62,4 +62,29 @@ public interface ITaskRepository
         ScheduledTaskStatus newStatus,
         DateTime nowUtc,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Задачи, которые пора запускать: время наступило и статус позволяет запуск. Задачи в статусах ожидания
+    /// берутся не чаще, чем раз в интервал (их UpdatedAt должен быть не позже waitingRetryBeforeUtc).
+    /// Порядок по времени запуска.
+    /// </summary>
+    Task<IReadOnlyList<ScheduledTask>> GetDueAsync(
+        DateTime nowUtc, DateTime waitingRetryBeforeUtc, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>Pending → Scheduled после успешной регистрации в системном планировщике. false, если статус уже другой.</summary>
+    Task<bool> TryMarkScheduledAsync(Guid id, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Помечает пропущенную задачу как Failed и пишет в историю запись с результатом Skipped.
+    /// false, если задачу уже взял другой исполнитель или статус не позволяет запуск.
+    /// </summary>
+    Task<bool> TryMarkMissedAsync(
+        Guid id, string message, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Задачи в статусе Running, которые не обновлялись с cutoffUtc, переводит в NeedsUserAction
+    /// и закрывает их открытые попытки с результатом Unknown. Возвращает количество задач.
+    /// </summary>
+    Task<int> RecoverStuckAsync(
+        DateTime cutoffUtc, DateTime nowUtc, string message, CancellationToken cancellationToken = default);
 }

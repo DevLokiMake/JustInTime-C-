@@ -24,6 +24,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
     private readonly ITaskService _tasks;
     private readonly INavigationService _navigation;
+    private readonly IDialogService _dialogs;
     private readonly TimeProvider _time;
     private readonly ILogger<TaskEditorViewModel> _logger;
 
@@ -36,9 +37,11 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         ITaskService tasks,
         INavigationService navigation,
         TimeProvider time,
+        IDialogService dialogs,
         ILogger<TaskEditorViewModel> logger)
     {
         _tasks = tasks;
+        _dialogs = dialogs;
         _navigation = navigation;
         _time = time;
         _logger = logger;
@@ -217,6 +220,13 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
             if (result.Succeeded)
             {
+                // Задача уже сохранена. Предупреждение (например, Планировщик Windows недоступен)
+                // показываем до перехода, чтобы пользователь его не пропустил.
+                if (result.Warnings.Count > 0)
+                {
+                    _dialogs.Warn("Задача сохранена", result.WarningText);
+                }
+
                 _navigation.Navigate(NavSection.MyTasks);
                 return;
             }

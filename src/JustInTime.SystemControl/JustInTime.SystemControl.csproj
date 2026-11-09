@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Каркас модуля. Управление Wi-Fi, Bluetooth и запуск программ будет на этапе 10. -->
+  <!-- Исполнители системных действий: открытие ссылок, запуск программ. Wi-Fi, Bluetooth и остальное будет на этапе 10. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>JustInTime.SystemControl</RootNamespace>

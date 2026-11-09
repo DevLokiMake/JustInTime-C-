@@ -4,4 +4,7 @@ namespace JustInTime.App.Services;
 public interface IDialogService
 {
     bool Confirm(string title, string message);
+
+    /// <summary>Сообщение с одной кнопкой «OK»: предупреждение, которое нужно прочитать.</summary>
+    void Warn(string title, string message);
 }

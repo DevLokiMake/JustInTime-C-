@@ -222,6 +222,131 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
         return true;
     }
 
+    public async Task<IReadOnlyList<ScheduledTask>> GetDueAsync(
+        DateTime nowUtc, DateTime waitingRetryBeforeUtc, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var upcoming = ScheduledTaskStatuses.Upcoming;
+        var waiting = ScheduledTaskStatuses.Waiting;
+
+        return await db.Tasks
+            .AsNoTracking()
+            .Where(t => t.ScheduledAt <= nowUtc
+                        && (upcoming.Contains(t.Status)
+                            || (waiting.Contains(t.Status) && t.UpdatedAt <= waitingRetryBeforeUtc)))
+            .OrderBy(t => t.ScheduledAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> TryMarkScheduledAsync(
+        Guid id, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var affected = await db.Tasks
+            .Where(t => t.Id == id && t.Status == ScheduledTaskStatus.Pending)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.Scheduled)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        return affected > 0;
+    }
+
+    public async Task<bool> TryMarkMissedAsync(
+        Guid id, string message, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var startable = ScheduledTaskStatuses.Startable;
+        var taskError = Truncate(message, MaxTaskErrorLength);
+
+        var affected = await db.Tasks
+            .Where(t => t.Id == id && startable.Contains(t.Status))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.Failed)
+                    .SetProperty(t => t.LastError, taskError)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        if (affected == 0)
+        {
+            return false;
+        }
+
+        var attempts = await db.Tasks
+            .Where(t => t.Id == id)
+            .Select(t => t.AttemptCount)
+            .SingleAsync(cancellationToken);
+
+        // AttemptNumber = число реальных попыток. Пропуск попыткой не считается, поэтому номер может быть 0.
+        db.ExecutionHistories.Add(new ExecutionHistory
+        {
+            TaskId = id,
+            StartedAt = nowUtc,
+            FinishedAt = nowUtc,
+            Result = ExecutionResult.Skipped,
+            ErrorMessage = Truncate(message, MaxHistoryErrorLength),
+            AttemptNumber = attempts
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return true;
+    }
+
+    public async Task<int> RecoverStuckAsync(
+        DateTime cutoffUtc, DateTime nowUtc, string message, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var stuckIds = await db.Tasks
+            .Where(t => t.Status == ScheduledTaskStatus.Running && t.UpdatedAt <= cutoffUtc)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
+        if (stuckIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var taskError = Truncate(message, MaxTaskErrorLength);
+        var historyError = Truncate(message, MaxHistoryErrorLength);
+
+        // Результат неизвестен: действие могло успеть выполниться. Поэтому не Failed (повтор безопасен),
+        // а NeedsUserAction, который автоматически не запускается.
+        var recovered = await db.Tasks
+            .Where(t => stuckIds.Contains(t.Id) && t.Status == ScheduledTaskStatus.Running)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.NeedsUserAction)
+                    .SetProperty(t => t.LastError, taskError)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        await db.ExecutionHistories
+            .Where(h => stuckIds.Contains(h.TaskId) && h.FinishedAt == null)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(h => h.FinishedAt, (DateTime?)nowUtc)
+                    .SetProperty(h => h.Result, (ExecutionResult?)ExecutionResult.Unknown)
+                    .SetProperty(h => h.ErrorMessage, historyError),
+                cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return recovered;
+    }
+
     private static string? Truncate(string? value, int maxLength) =>
         value is null || value.Length <= maxLength ? value : value[..maxLength];
 }

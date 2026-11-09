@@ -3,7 +3,7 @@ using JustInTime.Core.Models;
 
 namespace JustInTime.Core.Services;
 
-public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITaskService
+public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar, TimeProvider time) : ITaskService
 {
     private sealed record Prepared(string Title, TaskPayload Payload, ResolvedSchedule Schedule, string PayloadJson);
 
@@ -36,7 +36,11 @@ public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITas
 
         await tasks.AddAsync(task, cancellationToken);
 
-        return ServiceResult<ScheduledTask>.Ok(task);
+        var warnings = await RegisterAsync(task, cancellationToken);
+
+        return warnings.Count == 0
+            ? ServiceResult<ScheduledTask>.Ok(task)
+            : ServiceResult<ScheduledTask>.OkWithWarnings(task, warnings);
     }
 
     public async Task<ServiceResult> UpdateAsync(
@@ -70,7 +74,12 @@ public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITas
 
         if (await tasks.TryUpdateAsync(id, update, now, cancellationToken))
         {
-            return ServiceResult.Ok();
+            var changed = await tasks.GetByIdAsync(id, cancellationToken);
+            var warnings = changed is null
+                ? new List<string>()
+                : await RegisterAsync(changed, cancellationToken);
+
+            return warnings.Count == 0 ? ServiceResult.Ok() : ServiceResult.OkWithWarnings(warnings);
         }
 
         return ServiceResult.Fail(await ExplainRefusalAsync(id, "изменить", cancellationToken));
@@ -80,7 +89,17 @@ public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITas
     {
         if (await tasks.TryCancelAsync(id, UtcNow(), cancellationToken))
         {
-            return ServiceResult.Ok();
+            // Задача уже отменена в БД. Лишний системный запуск безвреден: при срабатывании движок увидит
+            // статус Cancelled и ничего не сделает, а при следующем старте приложения запуск будет удалён.
+            var removed = await registrar.UnregisterAsync(id, cancellationToken);
+
+            return removed.Succeeded
+                ? ServiceResult.Ok()
+                : ServiceResult.OkWithWarnings(new[]
+                {
+                    "Задача отменена, но её запуск не удалось снять в Планировщике Windows: " + removed.Error +
+                    " Он ничего не сделает и будет удалён при следующем запуске приложения."
+                });
         }
 
         return ServiceResult.Fail(await ExplainRefusalAsync(id, "отменить", cancellationToken));
@@ -92,7 +111,12 @@ public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITas
 
         if (await tasks.TryRetryAsync(id, now, now, cancellationToken))
         {
-            return ServiceResult.Ok();
+            var retried = await tasks.GetByIdAsync(id, cancellationToken);
+            var warnings = retried is null
+                ? new List<string>()
+                : await RegisterAsync(retried, cancellationToken);
+
+            return warnings.Count == 0 ? ServiceResult.Ok() : ServiceResult.OkWithWarnings(warnings);
         }
 
         var task = await tasks.GetByIdAsync(id, cancellationToken);
@@ -109,6 +133,27 @@ public sealed class TaskService(ITaskRepository tasks, TimeProvider time) : ITas
         IReadOnlyCollection<ScheduledTaskStatus>? statuses = null,
         CancellationToken cancellationToken = default) =>
         tasks.GetListAsync(statuses, cancellationToken);
+
+    /// <summary>
+    /// Регистрирует системный запуск и помечает задачу Scheduled. Сбой регистрации не отменяет создание задачи:
+    /// она остаётся в Pending и выполнится, пока приложение запущено, а пользователь получает предупреждение.
+    /// </summary>
+    private async Task<List<string>> RegisterAsync(ScheduledTask task, CancellationToken cancellationToken)
+    {
+        var registration = await registrar.RegisterAsync(task, cancellationToken);
+
+        if (registration.Succeeded)
+        {
+            await tasks.TryMarkScheduledAsync(task.Id, UtcNow(), cancellationToken);
+            return new List<string>();
+        }
+
+        return new List<string>
+        {
+            "Задача сохранена, но её не удалось поставить в Планировщик Windows: " + registration.Error +
+            " Она выполнится в нужное время только пока приложение запущено."
+        };
+    }
 
     private DateTime UtcNow() => time.GetUtcNow().UtcDateTime;
 
