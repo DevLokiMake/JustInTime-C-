@@ -76,9 +76,9 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     public IReadOnlyList<Option<SystemSettingKind>> SettingOptions { get; } =
     [
         new(SystemSettingKind.Bluetooth, UiNames.Setting(SystemSettingKind.Bluetooth)),
-        new(SystemSettingKind.WiFi, UiNames.Setting(SystemSettingKind.WiFi)),
-        new(SystemSettingKind.AirplaneMode, UiNames.Setting(SystemSettingKind.AirplaneMode)),
-        new(SystemSettingKind.MobileData, UiNames.Setting(SystemSettingKind.MobileData))
+        new(SystemSettingKind.WiFi, UiNames.Setting(SystemSettingKind.WiFi))
+        // Авиарежим и мобильный интернет в список не входят: у Windows нет официального API,
+        // которым обычное приложение могло бы их переключить, а фиктивных вариантов быть не должно.
     ];
 
     public IReadOnlyList<Option<bool>> SwitchOptions { get; } =
@@ -363,7 +363,19 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 MessageText = message.Text;
                 break;
             case SystemSettingPayload setting:
-                SelectedSetting = SettingOptions.First(o => o.Value == setting.Setting);
+                var option = SettingOptions.FirstOrDefault(o => o.Value == setting.Setting);
+
+                if (option is null)
+                {
+                    // Такая задача могла остаться от прошлой версии. Менять её бессмысленно: она не выполнится.
+                    IsEditable = false;
+                    ShowErrors([$"«{UiNames.Setting(setting.Setting)}» в Windows не поддерживается. Отмените эту задачу и создайте новую."]);
+                }
+                else
+                {
+                    SelectedSetting = option;
+                }
+
                 SelectedSwitch = SwitchOptions.First(o => o.Value == setting.Enable);
                 break;
             case LaunchProgramPayload program:

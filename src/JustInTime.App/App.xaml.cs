@@ -156,6 +156,8 @@ public partial class App : Application
                 services.AddSingleton(new SchedulerEngineOptions());
                 services.AddSingleton<IActionExecutor, OpenUrlExecutor>();
                 services.AddSingleton<IActionExecutor, LaunchProgramExecutor>();
+                services.AddSingleton<IRadioService, WindowsRadioService>();
+                services.AddSingleton<IActionExecutor, SystemSettingExecutor>();
                 services.AddSingleton<SchedulerEngine>();
                 services.AddSingleton<SchedulerLoop>();
 
