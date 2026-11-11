@@ -10,5 +10,7 @@ public interface IExecutionHistoryRepository
 
     Task<IReadOnlyList<ExecutionHistory>> GetRecentAsync(int count, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ExecutionHistory>> GetRecentFailuresAsync(int count, CancellationToken cancellationToken = default);
+    /// <summary>Последние попытки с одним из указанных итогов (новые первыми). Незавершённые попытки сюда не попадают.</summary>
+    Task<IReadOnlyList<ExecutionHistory>> GetRecentByResultAsync(
+        IReadOnlyCollection<ExecutionResult> results, int count, CancellationToken cancellationToken = default);
 }

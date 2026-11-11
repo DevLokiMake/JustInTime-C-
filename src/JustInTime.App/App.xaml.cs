@@ -159,6 +159,9 @@ public partial class App : Application
                 services.AddSingleton<IRadioService, WindowsRadioService>();
                 services.AddSingleton<IActionExecutor, SystemSettingExecutor>();
                 services.AddSingleton<SchedulerEngine>();
+                services.AddSingleton<INotificationService, ToastNotificationService>();
+                services.AddSingleton<RunNotifier>();
+                services.AddSingleton<IUserSettingsService, UserSettingsService>();
                 services.AddSingleton<SchedulerLoop>();
 
                 services.AddSingleton<INavigationService, NavigationService>();
@@ -167,6 +170,8 @@ public partial class App : Application
                 services.AddTransient<DashboardViewModel>();
                 services.AddTransient<MyTasksViewModel>();
                 services.AddTransient<TaskEditorViewModel>();
+                services.AddTransient<HistoryViewModel>();
+                services.AddTransient<SettingsViewModel>();
                 services.AddSingleton<MainWindow>();
             })
             .Build();
@@ -215,6 +220,7 @@ public partial class App : Application
         {
             var report = await _host!.Services.GetRequiredService<SchedulerEngine>().RunDueAsync();
             SchedulerLoop.LogReport(_host.Services.GetRequiredService<ILogger<App>>(), report);
+            await _host.Services.GetRequiredService<RunNotifier>().NotifyAsync(report);
             Shutdown(0);
         }
         catch (Exception ex)

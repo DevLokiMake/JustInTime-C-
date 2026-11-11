@@ -38,14 +38,19 @@ public sealed class ExecutionHistoryRepository(IDbContextFactory<JustInTimeDbCon
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ExecutionHistory>> GetRecentFailuresAsync(
-        int count, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ExecutionHistory>> GetRecentByResultAsync(
+        IReadOnlyCollection<ExecutionResult> results, int count, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(results);
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+
+        var wanted = results.Select(r => (ExecutionResult?)r).ToArray();
+
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         return await db.ExecutionHistories
             .AsNoTracking()
             .Include(h => h.ScheduledTask)
-            .Where(h => h.Result == ExecutionResult.Failed)
+            .Where(h => wanted.Contains(h.Result))
             .OrderByDescending(h => h.StartedAt)
             .Take(count)
             .ToListAsync(cancellationToken);

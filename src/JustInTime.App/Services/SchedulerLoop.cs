@@ -10,7 +10,7 @@ namespace JustInTime.App.Services;
 /// с ключом --run-due, даже когда окно закрыто. Оба безопасно работают одновременно:
 /// каждую задачу атомарно берёт только один процесс.
 /// </summary>
-public sealed class SchedulerLoop(SchedulerEngine engine, ILogger<SchedulerLoop> logger)
+public sealed class SchedulerLoop(SchedulerEngine engine, RunNotifier notifier, ILogger<SchedulerLoop> logger)
 {
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
 
@@ -127,7 +127,9 @@ public sealed class SchedulerLoop(SchedulerEngine engine, ILogger<SchedulerLoop>
     {
         try
         {
-            LogReport(logger, await engine.RunDueAsync(cancellationToken));
+            var report = await engine.RunDueAsync(cancellationToken);
+            LogReport(logger, report);
+            await notifier.NotifyAsync(report, cancellationToken);
         }
         catch (OperationCanceledException)
         {

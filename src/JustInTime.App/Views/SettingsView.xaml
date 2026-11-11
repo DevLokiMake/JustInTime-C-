@@ -1,0 +1,81 @@
+<UserControl x:Class="JustInTime.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.25" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32,28,32,16" MaxWidth="640" HorizontalAlignment="Left">
+
+            <TextBlock Text="Settings" Style="{StaticResource H1}" />
+            <TextBlock Text="Настройки приложения. Хранятся локально, в вашей базе PostgreSQL."
+                       Style="{StaticResource Muted}" Margin="0,2,0,16" TextWrapping="Wrap" />
+
+            <Border Style="{StaticResource Banner}"
+                    Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MessageIsError}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
+
+            <StackPanel IsEnabled="{Binding IsLoaded}">
+
+                <!-- Автоматизация -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Автоматизация" Style="{StaticResource H2}" />
+                        <CheckBox Content="Выполнять запланированные задачи"
+                                  IsChecked="{Binding AutomationEnabled, Mode=TwoWay}"
+                                  Margin="0,12,0,0" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Если выключить, ни одна задача не выполнится (ни из окна, ни из Планировщика Windows). Задачи останутся в списке и выполнятся после включения, если не опоздают." />
+
+                        <TextBlock Text="Допустимое опоздание, минут" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+                        <TextBox Text="{Binding GraceMinutesText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Если компьютер был выключен в нужное время, задача выполнится при включении, но только если опоздание не больше этого значения. Иначе она будет помечена как пропущенная. От 1 до 1440." />
+                    </StackPanel>
+                </Border>
+
+                <!-- Уведомления -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Уведомления" Style="{StaticResource H2}" />
+                        <CheckBox Content="Показывать уведомления Windows"
+                                  IsChecked="{Binding NotificationsEnabled, Mode=TwoWay}"
+                                  Margin="0,12,0,0" />
+                        <CheckBox Content="Уведомлять и об успешных задачах"
+                                  IsChecked="{Binding NotifyOnSuccess, Mode=TwoWay}"
+                                  Margin="0,8,0,0" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="По умолчанию приложение сообщает только о проблемах: ошибка, пропуск, неизвестный результат." />
+                    </StackPanel>
+                </Border>
+
+                <Button Content="Сохранить"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        HorizontalAlignment="Left" />
+
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

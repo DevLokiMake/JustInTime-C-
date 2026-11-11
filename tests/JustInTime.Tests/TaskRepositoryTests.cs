@@ -426,7 +426,7 @@ public sealed class TaskRepositoryTests(PostgresFixture db) : IAsyncLifetime
         });
 
         var recent = await _history.GetRecentAsync(10);
-        var failures = await _history.GetRecentFailuresAsync(10);
+        var failures = await _history.GetRecentByResultAsync([ExecutionResult.Failed], 10);
 
         Assert.Equal(
             [Now.AddMinutes(3), Now.AddMinutes(2), Now.AddMinutes(1)],
@@ -435,5 +435,30 @@ public sealed class TaskRepositoryTests(PostgresFixture db) : IAsyncLifetime
 
         var failure = Assert.Single(failures);
         Assert.Equal("сбой", failure.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task GetRecentByResult_returns_only_requested_results_newest_first_and_honors_limit()
+    {
+        var task = NewTask(Now);
+        await _tasks.AddAsync(task);
+
+        async Task AddHistory(int minute, ExecutionResult? result) =>
+            await _history.AddAsync(new ExecutionHistory { TaskId = task.Id, StartedAt = Now.AddMinutes(minute), Result = result });
+
+        await AddHistory(1, ExecutionResult.Success);
+        await AddHistory(2, ExecutionResult.Failed);
+        await AddHistory(3, ExecutionResult.Skipped);
+        await AddHistory(4, ExecutionResult.Unknown);
+        await AddHistory(5, null);
+
+        var problems = await _history.GetRecentByResultAsync(ExecutionResults.Problems, 10);
+        var success = await _history.GetRecentByResultAsync([ExecutionResult.Success], 10);
+        var limited = await _history.GetRecentByResultAsync(ExecutionResults.Problems, 2);
+
+        Assert.Equal([Now.AddMinutes(4), Now.AddMinutes(3), Now.AddMinutes(2)], problems.Select(h => h.StartedAt).ToArray());
+        Assert.Equal("Тестовая задача", problems[0].ScheduledTask!.Title);
+        Assert.Equal(ExecutionResult.Success, Assert.Single(success).Result);
+        Assert.Equal(2, limited.Count);
     }
 }

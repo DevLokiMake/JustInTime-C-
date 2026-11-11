@@ -14,3 +14,14 @@ public enum ExecutionResult
 
     Skipped
 }
+
+public static class ExecutionResults
+{
+    /// <summary>Попытки, на которые пользователю стоит обратить внимание: ошибка, неизвестный итог, пропуск.</summary>
+    public static readonly ExecutionResult[] Problems =
+    [
+        ExecutionResult.Failed,
+        ExecutionResult.Unknown,
+        ExecutionResult.Skipped
+    ];
+}

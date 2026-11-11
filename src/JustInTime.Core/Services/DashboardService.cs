@@ -15,7 +15,7 @@ public sealed class DashboardService(
         var failed = await tasks.CountByStatusAsync(ScheduledTaskStatus.Failed, cancellationToken);
         var next = await tasks.GetNextScheduledAsync(cancellationToken);
         var recent = await history.GetRecentAsync(ListSize, cancellationToken);
-        var failures = await history.GetRecentFailuresAsync(ListSize, cancellationToken);
+        var failures = await history.GetRecentByResultAsync(ExecutionResults.Problems, ListSize, cancellationToken);
 
         return new DashboardSnapshot(active, failed, next, recent, failures);
     }

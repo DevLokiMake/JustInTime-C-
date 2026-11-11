@@ -11,4 +11,10 @@ public static class SettingKeys
     /// были выключены дольше, задача помечается как пропущенная, чтобы не сработать невпопад.
     /// </summary>
     public const string MissedGraceMinutes = "Scheduler.MissedGraceMinutes";
+
+    /// <summary>Показывать ли уведомления Windows. По умолчанию да.</summary>
+    public const string NotificationsEnabled = "Notifications.Enabled";
+
+    /// <summary>Уведомлять ли об успешных задачах. По умолчанию нет: тихо, пока всё хорошо.</summary>
+    public const string NotifyOnSuccess = "Notifications.OnSuccess";
 }
