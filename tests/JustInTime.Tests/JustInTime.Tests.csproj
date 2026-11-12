@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JustInTime.Core\JustInTime.Core.csproj" />
+    <ProjectReference Include="..\..\src\JustInTime.Automation\JustInTime.Automation.csproj" />
     <ProjectReference Include="..\..\src\JustInTime.Infrastructure\JustInTime.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\JustInTime.Scheduler\JustInTime.Scheduler.csproj" />
     <ProjectReference Include="..\..\src\JustInTime.SystemControl\JustInTime.SystemControl.csproj" />

@@ -258,6 +258,36 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
         return affected > 0;
     }
 
+    public async Task<bool> TryMarkWaitingForUnlockAsync(
+        Guid id, string message, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var upcoming = ScheduledTaskStatuses.Upcoming;
+        var taskError = Truncate(message, MaxTaskErrorLength);
+
+        var changed = await db.Tasks
+            .Where(t => t.Id == id && upcoming.Contains(t.Status))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.WaitingForUnlock)
+                    .SetProperty(t => t.LastError, taskError)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        if (changed > 0)
+        {
+            return true;
+        }
+
+        // Уже ждёт: только сдвигаем время, чтобы повтор был не чаще раза в минуту. Статус не менялся, значит false.
+        await db.Tasks
+            .Where(t => t.Id == id && t.Status == ScheduledTaskStatus.WaitingForUnlock)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UpdatedAt, nowUtc), cancellationToken);
+
+        return false;
+    }
+
     public async Task<bool> TryMarkMissedAsync(
         Guid id, string message, DateTime nowUtc, CancellationToken cancellationToken = default)
     {

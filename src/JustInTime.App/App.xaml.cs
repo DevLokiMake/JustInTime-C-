@@ -3,6 +3,9 @@ using System.Windows;
 using System.Windows.Threading;
 using JustInTime.App.Services;
 using JustInTime.App.ViewModels;
+using JustInTime.Automation;
+using JustInTime.Automation.Session;
+using JustInTime.Automation.Uia;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Services;
 using JustInTime.Infrastructure;
@@ -22,6 +25,9 @@ public partial class App : Application
     /// <summary>Ключ запуска из Планировщика заданий: выполнить наступившие задачи и закрыться без окна.</summary>
     public const string RunDueArgument = "--run-due";
 
+    /// <summary>Ключ запуска: сохранить снимок дерева элементов окна и выйти. Пример: JustInTime.exe --dump-ui WhatsApp</summary>
+    public const string DumpUiArgument = "--dump-ui";
+
     private IHost? _host;
     private SchedulerLoop? _loop;
     private bool _headless;
@@ -34,6 +40,14 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        var dumpIndex = Array.FindIndex(e.Args, a => string.Equals(a, DumpUiArgument, StringComparison.OrdinalIgnoreCase));
+
+        if (dumpIndex >= 0)
+        {
+            await DumpUiAndExitAsync(dumpIndex + 1 < e.Args.Length ? e.Args[dumpIndex + 1] : string.Empty);
+            return;
+        }
 
         _headless = e.Args.Contains(RunDueArgument, StringComparer.OrdinalIgnoreCase);
 
@@ -158,6 +172,9 @@ public partial class App : Application
                 services.AddSingleton<IActionExecutor, LaunchProgramExecutor>();
                 services.AddSingleton<IRadioService, WindowsRadioService>();
                 services.AddSingleton<IActionExecutor, SystemSettingExecutor>();
+                services.AddSingleton<IDesktopSession, DesktopSession>();
+                services.AddSingleton<IWindowFinder, UiaWindowFinder>();
+                services.AddSingleton(sp => new UiInspector(sp.GetRequiredService<IWindowFinder>(), UiDumpPaths.Directory));
                 services.AddSingleton<SchedulerEngine>();
                 services.AddSingleton<INotificationService, ToastNotificationService>();
                 services.AddSingleton<RunNotifier>();
@@ -172,6 +189,7 @@ public partial class App : Application
                 services.AddTransient<TaskEditorViewModel>();
                 services.AddTransient<HistoryViewModel>();
                 services.AddTransient<SettingsViewModel>();
+                services.AddTransient<AutomationViewModel>();
                 services.AddSingleton<MainWindow>();
             })
             .Build();
@@ -204,6 +222,33 @@ public partial class App : Application
             }
 
             return false;
+        }
+    }
+
+    /// <summary>Режим --dump-ui: база данных не нужна. Результат показываем окном сообщения, консоли у приложения нет.</summary>
+    private async Task DumpUiAndExitAsync(string query)
+    {
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        try
+        {
+            var inspector = new UiInspector(new UiaWindowFinder(), UiDumpPaths.Directory);
+            var result = await inspector.InspectAsync(query);
+
+            var text = result.Success
+                ? result.Message + "\n\n" + string.Join("\n", result.Files)
+                : result.Message;
+
+            MessageBox.Show(
+                text, "JustInTime: снимок окна", MessageBoxButton.OK,
+                result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+            Shutdown(result.Success ? 0 : 1);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Снимок не удался: {ex.Message}", "JustInTime", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
         }
     }
 

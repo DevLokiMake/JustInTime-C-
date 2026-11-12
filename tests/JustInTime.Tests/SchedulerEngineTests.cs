@@ -408,6 +408,111 @@ public sealed class SchedulerEngineTests(PostgresFixture db) : IAsyncLifetime
         Assert.Equal(ScheduledTaskStatus.Pending, (await ReloadAsync(pending)).Status);
     }
 
+    // Этап 6: интерфейсные действия ждут разблокировки
+
+    private sealed class DesktopExecutor(ActionType type) : IActionExecutor
+    {
+        public ActionType ActionType => type;
+        public bool RequiresInteractiveDesktop => true;
+        public int Calls { get; private set; }
+
+        public Task<ExecutionOutcome> ExecuteAsync(TaskPayload payload, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(ExecutionOutcome.Success());
+        }
+    }
+
+    private SchedulerEngine CreateDesktopEngine(IActionExecutor executor, IDesktopSession? desktop) =>
+        new(_tasks, _settings, _registrar, [executor], _clock, new SchedulerEngineOptions(), desktop);
+
+    [Fact]
+    public async Task Desktop_task_waits_for_unlock_without_attempt_or_history()
+    {
+        var executor = new DesktopExecutor(ActionType.OpenUrl);
+        var desktop = new FakeDesktopSession(available: false);
+        var task = await AddTaskAsync(Now.AddMinutes(-1));
+
+        var report = await CreateDesktopEngine(executor, desktop).RunDueAsync();
+
+        var saved = await ReloadAsync(task);
+        Assert.Equal(ScheduledTaskStatus.WaitingForUnlock, saved.Status);
+        Assert.Equal(0, saved.AttemptCount);
+        Assert.Contains("разблокир", saved.LastError, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, executor.Calls);
+        Assert.Empty(await _history.GetByTaskAsync(task.Id));
+        Assert.Equal(ScheduledTaskStatus.WaitingForUnlock, Assert.Single(report.Entries).FinalStatus);
+    }
+
+    [Fact]
+    public async Task Desktop_task_runs_after_unlock()
+    {
+        var executor = new DesktopExecutor(ActionType.OpenUrl);
+        var desktop = new FakeDesktopSession(available: false);
+        var task = await AddTaskAsync(Now.AddMinutes(-1));
+        var engine = CreateDesktopEngine(executor, desktop);
+
+        await engine.RunDueAsync();
+        desktop.Available = true;
+        _clock.NowUtc = Now.AddMinutes(2);
+        await engine.RunDueAsync();
+
+        Assert.Equal(ScheduledTaskStatus.Completed, (await ReloadAsync(task)).Status);
+        Assert.Equal(1, executor.Calls);
+    }
+
+    [Fact]
+    public async Task Waiting_desktop_task_is_not_reported_again_and_is_retried_at_most_once_a_minute()
+    {
+        var executor = new DesktopExecutor(ActionType.OpenUrl);
+        var desktop = new FakeDesktopSession(available: false);
+        var task = await AddTaskAsync(Now.AddMinutes(-1));
+        var engine = CreateDesktopEngine(executor, desktop);
+
+        await engine.RunDueAsync();
+
+        // Сразу же второй прогон: задача ждёт и ещё не созрела для повтора.
+        var second = await engine.RunDueAsync();
+        Assert.Empty(second.Entries);
+
+        // Через две минуты проверка повторяется, но статус не менялся, поэтому нового сообщения нет.
+        _clock.NowUtc = Now.AddMinutes(2);
+        var third = await engine.RunDueAsync();
+        Assert.Empty(third.Entries);
+        Assert.Equal(ScheduledTaskStatus.WaitingForUnlock, (await ReloadAsync(task)).Status);
+    }
+
+    [Fact]
+    public async Task Non_desktop_task_runs_on_locked_computer()
+    {
+        var desktop = new FakeDesktopSession(available: false);
+        var task = await AddTaskAsync(Now.AddMinutes(-1));
+
+        // _executor (OpenUrl) интерфейс не использует: заблокированный экран ему не мешает.
+        var engine = new SchedulerEngine(
+            _tasks, _settings, _registrar, [_executor], _clock, new SchedulerEngineOptions(), desktop);
+        await engine.RunDueAsync();
+
+        Assert.Equal(ScheduledTaskStatus.Completed, (await ReloadAsync(task)).Status);
+    }
+
+    [Fact]
+    public async Task Desktop_task_that_waited_too_long_is_marked_missed()
+    {
+        var executor = new DesktopExecutor(ActionType.OpenUrl);
+        var desktop = new FakeDesktopSession(available: false);
+        var task = await AddTaskAsync(Now.AddMinutes(-1));
+        var engine = CreateDesktopEngine(executor, desktop);
+
+        await engine.RunDueAsync();
+        _clock.NowUtc = Now.AddHours(2);
+        var report = await engine.RunDueAsync();
+
+        Assert.Equal(ScheduledTaskStatus.Failed, (await ReloadAsync(task)).Status);
+        Assert.Equal(ExecutionResult.Skipped, Assert.Single(report.Entries).Result);
+        Assert.Equal(0, executor.Calls);
+    }
+
     private sealed class FailingRegistrar : ITaskRegistrar
     {
         public Task<RegistrationResult> RegisterAsync(ScheduledTask task, CancellationToken cancellationToken = default) =>

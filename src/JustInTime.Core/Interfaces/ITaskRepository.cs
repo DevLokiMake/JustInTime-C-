@@ -75,6 +75,14 @@ public interface ITaskRepository
     Task<bool> TryMarkScheduledAsync(Guid id, DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Переводит задачу в WaitingForUnlock без записи в историю (запуска не было) и обновляет UpdatedAt,
+    /// чтобы следующая попытка была не раньше чем через интервал повтора. true, если статус изменился
+    /// (раньше задача не ждала); false, если она уже ждала разблокировки или её нельзя запустить.
+    /// </summary>
+    Task<bool> TryMarkWaitingForUnlockAsync(
+        Guid id, string message, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Помечает пропущенную задачу как Failed и пишет в историю запись с результатом Skipped.
     /// false, если задачу уже взял другой исполнитель или статус не позволяет запуск.
     /// </summary>

@@ -30,7 +30,7 @@ public sealed partial class NavigationService(
             NavSection.MyTasks => services.GetRequiredService<MyTasksViewModel>(),
             NavSection.CreateTask => services.GetRequiredService<TaskEditorViewModel>(),
             NavSection.ScheduledMessages => Placeholder("Scheduled Messages", "Запланированные сообщения в WhatsApp и Telegram."),
-            NavSection.Automation => Placeholder("Automation", "Настройки и состояние автоматизации."),
+            NavSection.Automation => services.GetRequiredService<AutomationViewModel>(),
             NavSection.History => services.GetRequiredService<HistoryViewModel>(),
             NavSection.Settings => services.GetRequiredService<SettingsViewModel>(),
             _ => throw new ArgumentOutOfRangeException(nameof(section), section, null)

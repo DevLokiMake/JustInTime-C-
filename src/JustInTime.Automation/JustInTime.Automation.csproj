@@ -1,10 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Каркас модуля. Windows UI Automation будет на этапе 6. -->
+  <!-- Windows UI Automation: System.Windows.Automation (UIAutomationClient) входит в Microsoft.WindowsDesktop.App,
+       поэтому нужен UseWPF. Чистая логика поиска лежит в корне и не зависит от Windows. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>JustInTime.Automation</RootNamespace>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
+
+  <!-- WPF SDK убирает System.IO из неявных using. -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\JustInTime.Core\JustInTime.Core.csproj" />

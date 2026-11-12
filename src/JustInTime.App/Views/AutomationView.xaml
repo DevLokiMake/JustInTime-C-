@@ -1,0 +1,90 @@
+<UserControl x:Class="JustInTime.App.Views.AutomationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                     From="0" To="1" Duration="0:0:0.25" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32,28,32,16" MaxWidth="680" HorizontalAlignment="Left">
+
+            <TextBlock Text="Automation" Style="{StaticResource H1}" />
+            <TextBlock Text="Автоматизация окон программ через Windows UI Automation."
+                       Style="{StaticResource Muted}" Margin="0,2,0,16" TextWrapping="Wrap" />
+
+            <!-- Состояние рабочего стола -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Рабочий стол" Style="{StaticResource H2}" />
+                    <TextBlock Text="{Binding DesktopStatus}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="Задачи, которые управляют окнами программ (например отправка сообщений), не запускаются на заблокированном компьютере. Они ждут разблокировки и выполняются после неё, если не опоздали." />
+                    <Button Content="Проверить сейчас"
+                            Command="{Binding RefreshDesktopCommand}"
+                            Style="{StaticResource SecondaryButton}"
+                            HorizontalAlignment="Left" Margin="0,12,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Снимок окна -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Снимок окна программы" Style="{StaticResource H2}" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="Сохраняет в файл структуру элементов открытого окна: имена, типы, доступные действия. Ничего не нажимает и не вводит, значения полей ввода не читаются. Имена элементов могут содержать названия чатов: перед отправкой файла кому-либо просмотрите его." />
+
+                    <TextBlock Text="Часть названия окна или процесса" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
+                    <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="WhatsApp" Style="{StaticResource SmallButton}"
+                                Command="{Binding UseQueryCommand}" CommandParameter="WhatsApp" Margin="0,0,8,0" />
+                        <Button Content="Telegram" Style="{StaticResource SmallButton}"
+                                Command="{Binding UseQueryCommand}" CommandParameter="Telegram" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Button Content="Сделать снимок"
+                                Command="{Binding SnapshotCommand}"
+                                Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
+                        <Button Content="Открыть папку со снимками"
+                                Command="{Binding OpenFolderCommand}"
+                                Style="{StaticResource SecondaryButton}" />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource Banner}" Margin="0,14,0,0"
+                            Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MessageIsError}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding Files}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

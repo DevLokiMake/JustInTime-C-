@@ -94,6 +94,48 @@ public sealed class TaskRepositorySchedulerTests(PostgresFixture db) : IAsyncLif
     }
 
     [Theory]
+    [InlineData(ScheduledTaskStatus.Pending)]
+    [InlineData(ScheduledTaskStatus.Scheduled)]
+    public async Task TryMarkWaitingForUnlock_moves_upcoming_task_without_history(ScheduledTaskStatus from)
+    {
+        var task = await AddAsync(Now.AddMinutes(-1), from);
+
+        Assert.True(await _tasks.TryMarkWaitingForUnlockAsync(task.Id, "ждёт", Now));
+
+        var saved = await _tasks.GetByIdAsync(task.Id);
+        Assert.Equal(ScheduledTaskStatus.WaitingForUnlock, saved!.Status);
+        Assert.Equal("ждёт", saved.LastError);
+        Assert.Equal(0, saved.AttemptCount);
+        Assert.Empty(await _history.GetByTaskAsync(task.Id));
+    }
+
+    [Fact]
+    public async Task TryMarkWaitingForUnlock_on_already_waiting_task_only_touches_time()
+    {
+        var task = await AddAsync(Now.AddMinutes(-5), ScheduledTaskStatus.WaitingForUnlock);
+
+        Assert.False(await _tasks.TryMarkWaitingForUnlockAsync(task.Id, "ещё ждёт", Now));
+
+        var saved = await _tasks.GetByIdAsync(task.Id);
+        Assert.Equal(ScheduledTaskStatus.WaitingForUnlock, saved!.Status);
+        Assert.Equal(Now, saved.UpdatedAt);
+    }
+
+    [Theory]
+    [InlineData(ScheduledTaskStatus.Running)]
+    [InlineData(ScheduledTaskStatus.Completed)]
+    [InlineData(ScheduledTaskStatus.Cancelled)]
+    [InlineData(ScheduledTaskStatus.NeedsUserAction)]
+    [InlineData(ScheduledTaskStatus.WaitingForNetwork)]
+    public async Task TryMarkWaitingForUnlock_refuses_other_statuses(ScheduledTaskStatus status)
+    {
+        var task = await AddAsync(Now.AddMinutes(-1), status);
+
+        Assert.False(await _tasks.TryMarkWaitingForUnlockAsync(task.Id, "x", Now));
+        Assert.Equal(status, (await _tasks.GetByIdAsync(task.Id))!.Status);
+    }
+
+    [Theory]
     [InlineData(ScheduledTaskStatus.Running)]
     [InlineData(ScheduledTaskStatus.Completed)]
     [InlineData(ScheduledTaskStatus.Cancelled)]

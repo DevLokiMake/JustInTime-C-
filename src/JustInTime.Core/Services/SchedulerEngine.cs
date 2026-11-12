@@ -15,6 +15,7 @@ public sealed class SchedulerEngine
     private readonly ITaskRegistrar _registrar;
     private readonly TimeProvider _time;
     private readonly SchedulerEngineOptions _options;
+    private readonly IDesktopSession? _desktop;
     private readonly Dictionary<ActionType, IActionExecutor> _executors;
 
     public SchedulerEngine(
@@ -23,8 +24,10 @@ public sealed class SchedulerEngine
         ITaskRegistrar registrar,
         IEnumerable<IActionExecutor> executors,
         TimeProvider time,
-        SchedulerEngineOptions options)
+        SchedulerEngineOptions options,
+        IDesktopSession? desktop = null)
     {
+        _desktop = desktop;
         _tasks = tasks;
         _settings = settings;
         _registrar = registrar;
@@ -119,6 +122,20 @@ public sealed class SchedulerEngine
 
             return await _tasks.TryMarkMissedAsync(task.Id, message, now, cancellationToken)
                 ? new TaskRunEntry(task.Id, task.Title, ScheduledTaskStatus.Failed, ExecutionResult.Skipped, message)
+                : null;
+        }
+
+        if (_desktop is not null
+            && _executors.TryGetValue(task.ActionType, out var needsDesktop)
+            && needsDesktop.RequiresInteractiveDesktop
+            && !_desktop.IsAvailable(out var reason))
+        {
+            // Запуска не было: ни попытки, ни записи в историю. Задача ждёт, пока пользователь разблокирует компьютер.
+            var waitMessage = "Ожидает разблокировки: " + reason;
+
+            return await _tasks.TryMarkWaitingForUnlockAsync(task.Id, waitMessage, now, cancellationToken)
+                ? new TaskRunEntry(
+                    task.Id, task.Title, ScheduledTaskStatus.WaitingForUnlock, ExecutionResult.Skipped, waitMessage)
                 : null;
         }
 
