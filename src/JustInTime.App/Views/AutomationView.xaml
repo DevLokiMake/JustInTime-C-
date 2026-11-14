@@ -85,6 +85,52 @@
                     </ItemsControl>
                 </StackPanel>
             </Border>
+
+            <!-- Проверка ввода текста без отправки -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Проверка ввода текста (без отправки)" Style="{StaticResource H2}" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="Открой в мессенджере любой чат (лучше «Избранное» или чат с собой), нажми кнопку. Программа запишет пробный текст в поле ввода, прочитает его обратно, сохранит список кнопок окна и сразу очистит поле. Ничего не отправляется. Если в поле уже есть текст, программа его не тронет." />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="WhatsApp" Style="{StaticResource SmallButton}"
+                                Command="{Binding UseProbePresetCommand}" CommandParameter="WhatsApp" Margin="0,0,8,0" />
+                        <Button Content="Telegram" Style="{StaticResource SmallButton}"
+                                Command="{Binding UseProbePresetCommand}" CommandParameter="Telegram" />
+                    </StackPanel>
+
+                    <TextBlock Text="Окно (часть названия или процесса)" Style="{StaticResource FieldLabel}" Margin="0,12,0,6" />
+                    <TextBox Text="{Binding ProbeWindow, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Имя поля ввода содержит" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBox Text="{Binding ProbeComposerName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Класс поля (необязательно)" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBox Text="{Binding ProbeComposerClass, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Пробный текст" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBox Text="{Binding ProbeText, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Button Content="Проверить ввод"
+                            Command="{Binding RunProbeCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            HorizontalAlignment="Left" Margin="0,14,0,0" />
+
+                    <Border Style="{StaticResource Banner}" Margin="0,14,0,0"
+                            Visibility="{Binding HasProbeReport, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding ProbeReport}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ProbeFailed}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

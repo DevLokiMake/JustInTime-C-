@@ -2,7 +2,9 @@ using System.Text;
 
 namespace JustInTime.Automation;
 
-public sealed record DumpOptions(int MaxDepth = 14, int MaxNodes = 3000, int MaxNameLength = 60);
+/// <summary>InteractiveOnly: печатать только кнопки, поля ввода и другие элементы управления (без списков чатов и сообщений).</summary>
+public sealed record DumpOptions(
+    int MaxDepth = 14, int MaxNodes = 3000, int MaxNameLength = 60, bool InteractiveOnly = false);
 
 /// <summary>
 /// Текстовый снимок дерева элементов окна. Нужен, чтобы адаптеры мессенджеров писались по реальной структуре окна,
@@ -10,6 +12,11 @@ public sealed record DumpOptions(int MaxDepth = 14, int MaxNodes = 3000, int Max
 /// </summary>
 public static class UiTreeDumper
 {
+    private static readonly HashSet<string> InteractiveTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Button", "Edit", "CheckBox", "RadioButton", "ComboBox", "Hyperlink", "MenuItem", "TabItem", "Slider", "SplitButton"
+    };
+
     public static string Dump(IUiElement root, DumpOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(root);
@@ -32,7 +39,10 @@ public static class UiTreeDumper
                 return;
             }
 
-            sb.Append(' ', depth * 2).AppendLine(Describe(element, options));
+            if (!options.InteractiveOnly || InteractiveTypes.Contains(element.ControlType))
+            {
+                sb.Append(' ', depth * 2).AppendLine(Describe(element, options));
+            }
 
             if (depth + 1 >= options.MaxDepth)
             {

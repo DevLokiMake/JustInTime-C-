@@ -24,6 +24,11 @@ internal sealed class FakeUiElement(
     public int InvokeCount { get; private set; }
     public bool ChildrenThrow { get; set; }
 
+    /// <summary>Имитирует поле, которое принимает SetValue, но не меняет текст.</summary>
+    public bool IgnoreSetValue { get; set; }
+
+    public int SetValueCalls { get; private set; }
+
     /// <summary>Вызывается при каждом обходе потомков: позволяет менять дерево «на лету».</summary>
     public Action? OnGetChildren { get; set; }
 
@@ -62,7 +67,12 @@ internal sealed class FakeUiElement(
             throw new UiAutomationException("нет Value");
         }
 
-        Value = text;
+        SetValueCalls++;
+
+        if (!IgnoreSetValue)
+        {
+            Value = text;
+        }
     }
 
     public string GetValue() =>

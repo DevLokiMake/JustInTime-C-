@@ -12,6 +12,7 @@ namespace JustInTime.App.ViewModels;
 public sealed partial class AutomationViewModel(
     IDesktopSession desktop,
     UiInspector inspector,
+    ComposeProbe probe,
     ILogger<AutomationViewModel> logger) : ObservableObject, IInitializableViewModel
 {
     [ObservableProperty]
@@ -33,6 +34,31 @@ public sealed partial class AutomationViewModel(
 
     [ObservableProperty]
     private bool _messageIsError;
+
+    [ObservableProperty]
+    private string _probeWindow = "WhatsApp";
+
+    [ObservableProperty]
+    private string _probeComposerName = "Введите сообщение";
+
+    [ObservableProperty]
+    private string _probeComposerClass = string.Empty;
+
+    [ObservableProperty]
+    private string _probeText = "test123";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RunProbeCommand))]
+    private bool _isProbing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasProbeReport))]
+    private string? _probeReport;
+
+    [ObservableProperty]
+    private bool _probeFailed;
+
+    public bool HasProbeReport => !string.IsNullOrEmpty(ProbeReport);
 
     public ObservableCollection<string> Files { get; } = [];
 
@@ -109,6 +135,60 @@ public sealed partial class AutomationViewModel(
     }
 
     private bool CanSnapshot() => !IsBusy;
+
+    [RelayCommand]
+    private void UseProbePreset(string? name)
+    {
+        if (name == "Telegram")
+        {
+            ProbeWindow = "Telegram";
+            ProbeComposerName = "Сообщение...";
+            ProbeComposerClass = "class Ui::InputField::Inner";
+        }
+        else
+        {
+            ProbeWindow = "WhatsApp";
+            ProbeComposerName = "Введите сообщение";
+            ProbeComposerClass = string.Empty;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanProbe))]
+    private async Task RunProbeAsync()
+    {
+        IsProbing = true;
+        ProbeReport = null;
+
+        try
+        {
+            var composer = new ElementQuery(
+                NameContains: string.IsNullOrWhiteSpace(ProbeComposerName) ? null : ProbeComposerName.Trim(),
+                ControlType: "Edit",
+                ClassName: string.IsNullOrWhiteSpace(ProbeComposerClass) ? null : ProbeComposerClass.Trim());
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+            var result = await probe.RunAsync(new ProbeRequest(ProbeWindow, composer, ProbeText), cts.Token);
+
+            ProbeFailed = !result.Success;
+            ProbeReport = result.File is null
+                ? result.Report
+                : $"{(result.Success ? "Текст записан и прочитан обратно." : "Проверка не прошла.")} Отчёт: {result.File}";
+
+            logger.LogInformation("Проверка ввода «{Window}»: успех={Success}", ProbeWindow, result.Success);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Проверка ввода «{Window}» завершилась ошибкой", ProbeWindow);
+            ProbeFailed = true;
+            ProbeReport = "Проверка не удалась: " + ex.Message;
+        }
+        finally
+        {
+            IsProbing = false;
+        }
+    }
+
+    private bool CanProbe() => !IsProbing;
 
     [RelayCommand]
     private void OpenFolder()

@@ -178,6 +178,7 @@ public partial class App : Application
                 services.AddSingleton<IDesktopSession, DesktopSession>();
                 services.AddSingleton<IWindowFinder, UiaWindowFinder>();
                 services.AddSingleton(sp => new UiInspector(sp.GetRequiredService<IWindowFinder>(), UiDumpPaths.Directory));
+                services.AddSingleton(sp => new ComposeProbe(sp.GetRequiredService<IWindowFinder>(), UiDumpPaths.Directory));
                 services.AddSingleton<SchedulerEngine>();
                 services.AddSingleton<INotificationService, ToastNotificationService>();
                 services.AddSingleton<RunNotifier>();
