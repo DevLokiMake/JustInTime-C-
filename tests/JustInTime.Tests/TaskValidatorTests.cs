@@ -5,7 +5,7 @@ namespace JustInTime.Tests;
 
 public sealed class TaskValidatorTests
 {
-    private static readonly SendMessagePayload ValidMessage = new(MessengerApp.WhatsApp, "Анна", "Привет");
+    private static readonly SendMessagePayload ValidMessage = new(MessengerApp.WhatsApp, "+77011234567", "Привет");
 
     [Fact]
     public void Valid_message_has_no_errors()
@@ -41,6 +41,15 @@ public sealed class TaskValidatorTests
         Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "", "текст")));
         Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "Анна", "  ")));
         Assert.Equal(2, TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "", "")).Count);
+    }
+
+    [Fact]
+    public void WhatsApp_requires_an_international_phone_number()
+    {
+        var errors = TaskValidator.Validate(
+            "t", new SendMessagePayload(MessengerApp.WhatsApp, "Анна", "Привет"));
+
+        Assert.Contains(errors, error => error.Contains("номер телефона", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

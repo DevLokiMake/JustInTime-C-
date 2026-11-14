@@ -7,7 +7,7 @@ public sealed record MessageRequest(ParsedRecipient Recipient, string Text);
 
 public enum SendStatus
 {
-    /// <summary>Сообщение появилось в чате как отправленное. Это не подтверждение доставки.</summary>
+    /// <summary>Приложение приняло команду отправки. Это не подтверждение доставки.</summary>
     Sent,
 
     /// <summary>Сообщение точно не отправлено (нет программы, не найден или неоднозначен получатель, поле не найдено). Повтор безопасен.</summary>
@@ -19,7 +19,7 @@ public enum SendStatus
 
 public sealed record SendResult(SendStatus Status, string Message)
 {
-    public static SendResult Sent(string message = "Сообщение отправлено из приложения. Доставка получателю не проверяется.") =>
+    public static SendResult Sent(string message = "Приложение приняло команду отправки. Доставка получателю не проверяется.") =>
         new(SendStatus.Sent, message);
 
     public static SendResult NotSent(string message) => new(SendStatus.NotSent, message);

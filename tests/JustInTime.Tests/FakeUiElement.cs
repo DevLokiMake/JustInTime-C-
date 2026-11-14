@@ -32,6 +32,8 @@ internal sealed class FakeUiElement(
     /// <summary>Вызывается при каждом обходе потомков: позволяет менять дерево «на лету».</summary>
     public Action? OnGetChildren { get; set; }
 
+    public Action? OnInvoke { get; set; }
+
     public IReadOnlyList<IUiElement> GetChildren()
     {
         OnGetChildren?.Invoke();
@@ -58,6 +60,7 @@ internal sealed class FakeUiElement(
         }
 
         InvokeCount++;
+        OnInvoke?.Invoke();
     }
 
     public void SetValue(string text)

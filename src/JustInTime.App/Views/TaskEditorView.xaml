@@ -62,7 +62,7 @@
                                      SelectedItem="{Binding SelectedApp, Mode=TwoWay}"
                                      DisplayMemberPath="Title" />
 
-                            <TextBlock Text="Получатель: номер с плюсом (+77011234567), @имя Telegram или имя контакта" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="WhatsApp: номер с плюсом (+77011234567); Telegram: @имя или контакт" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding Recipient, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="200" />
 

@@ -73,6 +73,11 @@ public static class TaskValidator
             {
                 errors.Add(parsed.Error!);
             }
+            else if (payload.App == MessengerApp.WhatsApp
+                     && parsed.Recipient!.Kind != RecipientKind.Phone)
+            {
+                errors.Add("Для WhatsApp укажите номер телефона в международном формате.");
+            }
         }
 
         if (string.IsNullOrWhiteSpace(payload.Text))

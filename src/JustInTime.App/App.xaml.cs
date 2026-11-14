@@ -174,6 +174,8 @@ public partial class App : Application
                 services.AddSingleton<IRadioService, WindowsRadioService>();
                 services.AddSingleton<IActionExecutor, SystemSettingExecutor>();
                 services.AddSingleton<INetworkStatus, SystemNetworkStatus>();
+                services.AddSingleton<IWhatsAppProtocolLauncher, WhatsAppProtocolLauncher>();
+                services.AddSingleton<IMessengerAdapter, WhatsAppDesktopAdapter>();
                 services.AddSingleton<IActionExecutor, MessageSendExecutor>();
                 services.AddSingleton<IDesktopSession, DesktopSession>();
                 services.AddSingleton<IWindowFinder, UiaWindowFinder>();
