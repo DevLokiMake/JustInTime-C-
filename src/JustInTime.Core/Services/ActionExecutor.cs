@@ -8,6 +8,9 @@ public abstract class ActionExecutor<TPayload> : IActionExecutor where TPayload 
 {
     public abstract ActionType ActionType { get; }
 
+    /// <summary>Исполнители, управляющие окнами программ, переопределяют это значение.</summary>
+    public virtual bool RequiresInteractiveDesktop => false;
+
     public Task<ExecutionOutcome> ExecuteAsync(TaskPayload payload, CancellationToken cancellationToken) =>
         payload is TPayload typed
             ? ExecuteAsync(typed, cancellationToken)

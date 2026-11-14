@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Каркас модуля. Адаптеры WhatsApp и Telegram будут на этапах 8-9. -->
+  <!-- Messaging Engine: общий интерфейс адаптеров и исполнитель SendMessage. Адаптеры WhatsApp и Telegram пишутся
+       на этапе 9 по реальным снимкам окон. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>JustInTime.Messaging</RootNamespace>

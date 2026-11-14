@@ -65,6 +65,15 @@ public static class TaskValidator
         {
             errors.Add($"Имя получателя не должно быть длиннее {MaxRecipientLength} символов.");
         }
+        else if (Enum.IsDefined(payload.App))
+        {
+            var parsed = RecipientParser.Parse(payload.App, payload.Recipient);
+
+            if (!parsed.IsValid)
+            {
+                errors.Add(parsed.Error!);
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(payload.Text))
         {

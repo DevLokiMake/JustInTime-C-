@@ -10,6 +10,7 @@ using JustInTime.Core.Interfaces;
 using JustInTime.Core.Services;
 using JustInTime.Infrastructure;
 using JustInTime.Infrastructure.Database;
+using JustInTime.Messaging;
 using JustInTime.Scheduler;
 using JustInTime.SystemControl;
 using Microsoft.Extensions.Configuration;
@@ -172,6 +173,8 @@ public partial class App : Application
                 services.AddSingleton<IActionExecutor, LaunchProgramExecutor>();
                 services.AddSingleton<IRadioService, WindowsRadioService>();
                 services.AddSingleton<IActionExecutor, SystemSettingExecutor>();
+                services.AddSingleton<INetworkStatus, SystemNetworkStatus>();
+                services.AddSingleton<IActionExecutor, MessageSendExecutor>();
                 services.AddSingleton<IDesktopSession, DesktopSession>();
                 services.AddSingleton<IWindowFinder, UiaWindowFinder>();
                 services.AddSingleton(sp => new UiInspector(sp.GetRequiredService<IWindowFinder>(), UiDumpPaths.Directory));
