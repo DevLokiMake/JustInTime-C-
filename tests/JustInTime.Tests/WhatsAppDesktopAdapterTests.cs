@@ -41,6 +41,36 @@ public sealed class WhatsAppDesktopAdapterTests
     }
 
     [Fact]
+    public async Task Falls_back_to_keyboard_input_when_the_page_ignores_value_writes()
+    {
+        var fixture = CreateFixture();
+        fixture.Composer.IgnoreSetValue = true;
+        fixture.SendButton.OnInvoke = () => fixture.Composer.Value = string.Empty;
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Sent, result.Status);
+        Assert.Equal(1, fixture.Composer.TypeTextCalls);
+        Assert.Equal(1, fixture.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Does_not_send_when_neither_value_nor_keyboard_input_puts_the_text_in_the_field()
+    {
+        var fixture = CreateFixture();
+        fixture.Composer.IgnoreSetValue = true;
+        fixture.Composer.TypeTextWorks = false;
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(SendStatus.NotSent, result.Status);
+        Assert.Equal(0, fixture.SendButton.InvokeCount);
+        Assert.Contains("в поле: 0", result.Message);
+    }
+
+    [Fact]
     public async Task Existing_draft_is_preserved_and_never_sent()
     {
         var fixture = CreateFixture();

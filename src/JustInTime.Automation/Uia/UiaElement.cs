@@ -91,6 +91,42 @@ public sealed class UiaElement(AutomationElement element) : IUiElement
         return 0;
     });
 
+    public void TypeText(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        if (text.Any(char.IsControl))
+        {
+            throw new UiAutomationException("Ввод с клавиатуры поддерживает только однострочный текст без управляющих символов.");
+        }
+
+        Guard(() =>
+        {
+            element.SetFocus();
+            return 0;
+        });
+
+        // Фокус ставится асинхронно. Ждём немного и проверяем, что он именно на нашем поле.
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            if (IsFocused())
+            {
+                NativeInput.TypeUnicode(text);
+                return;
+            }
+
+            Thread.Sleep(100);
+        }
+
+        throw new UiAutomationException("Фокус не оказался на поле ввода; текст не вводился.");
+    }
+
+    private bool IsFocused() => Guard(() =>
+    {
+        var focused = AutomationElement.FocusedElement;
+        return focused is not null && System.Windows.Automation.Automation.Compare(focused, element);
+    });
+
     private static T Read<T>(Func<T> read, T fallback)
     {
         try

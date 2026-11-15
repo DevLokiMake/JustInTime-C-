@@ -66,13 +66,11 @@ public sealed class WhatsAppDesktopAdapter(
                     $"В поле WhatsApp уже есть текст (символов: {existing.Length}). Он не изменён; очистите черновик и повторите задачу.");
             }
 
-            field.SetValue(text);
-            await Task.Delay(SettleDelay, time, cancellationToken);
+            var entered = await EnterTextAsync(field, text, cancellationToken);
 
-            if (!string.Equals(Normalize(field.GetValue()), Normalize(text), StringComparison.Ordinal))
+            if (entered is not null)
             {
-                return NotSentAfterCleanup(
-                    field, text, "Не удалось проверить текст в поле WhatsApp до отправки.");
+                return NotSentAfterCleanup(field, text, entered);
             }
 
             var buttonSearch = await WaitForSendButtonAsync(window.Window, cancellationToken);
@@ -203,6 +201,61 @@ public sealed class WhatsAppDesktopAdapter(
                 maxNodes: 20000)
             .Where(field => !field.IsOffscreen && IsComposerName(field.Name))
             .ToList();
+
+    /// <summary>
+    /// Вводит текст в поле и проверяет результат. Сначала через Value; если страница это игнорирует (поле осталось
+    /// пустым), вводит с клавиатуры. Возвращает null при успехе или причину, по которой отправлять нельзя.
+    /// </summary>
+    private async Task<string?> EnterTextAsync(IUiElement field, string text, CancellationToken cancellationToken)
+    {
+        string? setError = null;
+
+        try
+        {
+            field.SetValue(text);
+        }
+        catch (UiAutomationException ex)
+        {
+            setError = ex.Message;
+        }
+
+        await Task.Delay(SettleDelay, time, cancellationToken);
+
+        if (Matches(field, text))
+        {
+            return null;
+        }
+
+        var current = Normalize(field.GetValue());
+
+        if (current.Length == 0 && text.All(c => !char.IsControl(c)))
+        {
+            try
+            {
+                field.TypeText(text);
+            }
+            catch (UiAutomationException ex)
+            {
+                return $"Запись через Value не сработала{(setError is null ? string.Empty : " (" + setError + ")")}, " +
+                       $"ввод с клавиатуры тоже: {ex.Message}";
+            }
+
+            await Task.Delay(SettleDelay, time, cancellationToken);
+
+            if (Matches(field, text))
+            {
+                return null;
+            }
+
+            current = Normalize(field.GetValue());
+        }
+
+        return $"Не удалось проверить текст в поле WhatsApp до отправки (ожидалось символов: {Normalize(text).Length}, " +
+               $"в поле: {current.Length}).";
+    }
+
+    private static bool Matches(IUiElement field, string text) =>
+        string.Equals(Normalize(field.GetValue()), Normalize(text), StringComparison.Ordinal);
 
     private async Task<ButtonSearch> WaitForSendButtonAsync(IUiElement window, CancellationToken cancellationToken)
     {

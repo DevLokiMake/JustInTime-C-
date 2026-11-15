@@ -81,6 +81,21 @@ internal sealed class FakeUiElement(
     public string GetValue() =>
         Patterns.Contains("Value") ? Value ?? string.Empty : throw new UiAutomationException("нет Value");
 
+    /// <summary>Что «набрано с клавиатуры»; по умолчанию попадает в Value, как в обычном поле.</summary>
+    public int TypeTextCalls { get; private set; }
+
+    public bool TypeTextWorks { get; set; } = true;
+
+    public void TypeText(string text)
+    {
+        TypeTextCalls++;
+
+        if (TypeTextWorks)
+        {
+            Value = text;
+        }
+    }
+
     public void SetFocus()
     {
     }
