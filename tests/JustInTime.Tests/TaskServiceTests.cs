@@ -24,7 +24,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     private static TaskInput MessageInput(
-        string title = "  Позвонить  ", TaskSchedule? schedule = null, string recipient = "Анна") =>
+        string title = "  Позвонить  ", TaskSchedule? schedule = null, string recipient = "+77011234567") =>
         new(title, new SendMessagePayload(MessengerApp.WhatsApp, recipient, "Привет"), schedule ?? new AfterDelaySchedule(15));
 
     // Сценарии 1 и 2: создание и сохранение
@@ -46,7 +46,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         Assert.Equal(TimeZoneInfo.Utc.Id, saved.TimeZone);
 
         var payload = TaskPayloadSerializer.Deserialize(saved.ActionType, saved.Payload);
-        Assert.Equal(new SendMessagePayload(MessengerApp.WhatsApp, "Анна", "Привет"), payload);
+        Assert.Equal(new SendMessagePayload(MessengerApp.WhatsApp, "+77011234567", "Привет"), payload);
     }
 
     [Fact]
