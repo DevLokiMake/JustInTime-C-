@@ -177,7 +177,8 @@ public sealed class SchedulerEngine
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(_options.ActionTimeout);
+        var limit = executor.Timeout is { } own && own > _options.ActionTimeout ? own : _options.ActionTimeout;
+        timeout.CancelAfter(limit);
 
         try
         {
@@ -186,7 +187,7 @@ public sealed class SchedulerEngine
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return ExecutionOutcome.Unknown(
-                $"Действие не уложилось в {FormatDuration(_options.ActionTimeout)}. Неизвестно, выполнено ли оно. Проверьте результат вручную.");
+                $"Действие не уложилось в {FormatDuration(limit)}. Неизвестно, выполнено ли оно. Проверьте результат вручную.");
         }
         catch (OperationCanceledException)
         {

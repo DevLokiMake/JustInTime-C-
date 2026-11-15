@@ -16,6 +16,9 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
 
     public override bool RequiresInteractiveDesktop => true;
 
+    /// <summary>Запуск мессенджера с нуля, ожидание чата и отправка могут занять больше минуты.</summary>
+    public override TimeSpan? Timeout => TimeSpan.FromSeconds(150);
+
     protected override async Task<ExecutionOutcome> ExecuteAsync(
         SendMessagePayload payload, CancellationToken cancellationToken)
     {

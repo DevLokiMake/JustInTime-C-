@@ -27,6 +27,20 @@ public sealed class WhatsAppDesktopAdapterTests
     }
 
     [Fact]
+    public async Task Invisible_placeholder_characters_in_the_field_are_not_treated_as_a_draft()
+    {
+        var fixture = CreateFixture();
+        fixture.Composer.Value = "\n\u200B";
+        fixture.SendButton.OnInvoke = () => fixture.Composer.Value = "\n";
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Sent, result.Status);
+        Assert.Equal(1, fixture.SendButton.InvokeCount);
+    }
+
+    [Fact]
     public async Task Existing_draft_is_preserved_and_never_sent()
     {
         var fixture = CreateFixture();

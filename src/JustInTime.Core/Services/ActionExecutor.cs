@@ -11,6 +11,8 @@ public abstract class ActionExecutor<TPayload> : IActionExecutor where TPayload 
     /// <summary>Исполнители, управляющие окнами программ, переопределяют это значение.</summary>
     public virtual bool RequiresInteractiveDesktop => false;
 
+    public virtual TimeSpan? Timeout => null;
+
     public Task<ExecutionOutcome> ExecuteAsync(TaskPayload payload, CancellationToken cancellationToken) =>
         payload is TPayload typed
             ? ExecuteAsync(typed, cancellationToken)

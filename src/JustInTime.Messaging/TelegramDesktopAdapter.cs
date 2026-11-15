@@ -17,7 +17,9 @@ public sealed class TelegramDesktopAdapter(
     MessengerApp app = MessengerApp.TelegramDesktop,
     TimeSpan? windowTimeout = null) : IMessengerAdapter
 {
-    private static readonly TimeSpan WindowTimeout = TimeSpan.FromSeconds(25);
+    private static readonly TimeSpan WindowTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan ReopenAfter = TimeSpan.FromSeconds(10);
+    private const int MaxReopens = 2;
     private static readonly TimeSpan StableFor = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan SendButtonTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan SendConfirmationTimeout = TimeSpan.FromSeconds(5);
@@ -57,7 +59,7 @@ public sealed class TelegramDesktopAdapter(
             cancellationToken.ThrowIfCancellationRequested();
             launcher.Open(link);
 
-            var found = await WaitForStableComposerAsync(cancellationToken);
+            var found = await WaitForStableComposerAsync(link, cancellationToken);
 
             if (found.Match is null)
             {
@@ -131,9 +133,11 @@ public sealed class TelegramDesktopAdapter(
     /// Ждёт, пока в окне Telegram появится ровно одно поле ввода и заголовок окна не меняется StableFor.
     /// Так мы не вводим текст в чат, который был открыт до перехода по ссылке.
     /// </summary>
-    private async Task<ComposerSearch> WaitForStableComposerAsync(CancellationToken cancellationToken)
+    private async Task<ComposerSearch> WaitForStableComposerAsync(string link, CancellationToken cancellationToken)
     {
         var deadline = time.GetUtcNow() + (windowTimeout ?? WindowTimeout);
+        var lastLaunch = time.GetUtcNow();
+        var reopens = 0;
         string? lastTitle = null;
         DateTimeOffset stableSince = default;
         var error = "Окно Telegram Desktop не найдено. Откройте и авторизуйте Telegram.";
@@ -191,6 +195,15 @@ public sealed class TelegramDesktopAdapter(
             if (time.GetUtcNow() >= deadline)
             {
                 return new ComposerSearch(null, error);
+            }
+
+            // Telegram мог быть закрыт или свёрнут в трей и не открыть чат по первой ссылке. Повтор той же ссылки
+            // безопасен: он лишь открывает чат и ничего не отправляет.
+            if (reopens < MaxReopens && lastTitle is null && time.GetUtcNow() - lastLaunch >= ReopenAfter)
+            {
+                launcher.Open(link);
+                reopens++;
+                lastLaunch = time.GetUtcNow();
             }
 
             await Task.Delay(PollInterval, time, cancellationToken);

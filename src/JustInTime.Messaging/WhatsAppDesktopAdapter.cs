@@ -9,7 +9,9 @@ public sealed class WhatsAppDesktopAdapter(
     IWhatsAppProtocolLauncher launcher,
     TimeProvider time) : IMessengerAdapter
 {
-    private static readonly TimeSpan ComposerTimeout = TimeSpan.FromSeconds(25);
+    private static readonly TimeSpan ComposerTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan ReopenAfter = TimeSpan.FromSeconds(10);
+    private const int MaxReopens = 2;
     private static readonly TimeSpan SendButtonTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan SendConfirmationTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
@@ -58,7 +60,7 @@ public sealed class WhatsAppDesktopAdapter(
 
             var existing = field.GetValue();
 
-            if (existing.Length > 0)
+            if (Normalize(existing).Length > 0)
             {
                 return SendResult.NotSent(
                     $"В поле WhatsApp уже есть текст (символов: {existing.Length}). Он не изменён; очистите черновик и повторите задачу.");
@@ -67,7 +69,7 @@ public sealed class WhatsAppDesktopAdapter(
             field.SetValue(text);
             await Task.Delay(SettleDelay, time, cancellationToken);
 
-            if (!string.Equals(field.GetValue(), text, StringComparison.Ordinal))
+            if (!string.Equals(Normalize(field.GetValue()), Normalize(text), StringComparison.Ordinal))
             {
                 return NotSentAfterCleanup(
                     field, text, "Не удалось проверить текст в поле WhatsApp до отправки.");
@@ -121,6 +123,8 @@ public sealed class WhatsAppDesktopAdapter(
     private async Task<ComposerSearch> WaitForComposerAsync(string phoneDigits, CancellationToken cancellationToken)
     {
         var deadline = time.GetUtcNow() + ComposerTimeout;
+        var lastLaunch = time.GetUtcNow();
+        var reopens = 0;
         string lastError = "Окно WhatsApp Desktop не найдено. Откройте и авторизуйте WhatsApp.";
 
         while (true)
@@ -160,6 +164,15 @@ public sealed class WhatsAppDesktopAdapter(
             if (time.GetUtcNow() >= deadline)
             {
                 return new ComposerSearch(null, lastError);
+            }
+
+            // Приложение могло только что запуститься и не открыть чат по ссылке. Повторное открытие
+            // той же ссылки безопасно: оно лишь открывает чат и ничего не отправляет.
+            if (reopens < MaxReopens && time.GetUtcNow() - lastLaunch >= ReopenAfter)
+            {
+                launcher.OpenChat(phoneDigits);
+                reopens++;
+                lastLaunch = time.GetUtcNow();
             }
 
             await Task.Delay(PollInterval, time, cancellationToken);
@@ -236,7 +249,7 @@ public sealed class WhatsAppDesktopAdapter(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (composer.GetValue().Length == 0)
+            if (Normalize(composer.GetValue()).Length == 0)
             {
                 return true;
             }
@@ -257,13 +270,13 @@ public sealed class WhatsAppDesktopAdapter(
     {
         try
         {
-            if (!string.Equals(field.GetValue(), text, StringComparison.Ordinal))
+            if (!string.Equals(Normalize(field.GetValue()), Normalize(text), StringComparison.Ordinal))
             {
                 return null;
             }
 
             field.SetValue(string.Empty);
-            return field.GetValue().Length == 0
+            return Normalize(field.GetValue()).Length == 0
                 ? null
                 : "Поле WhatsApp не удалось очистить; проверьте оставшийся черновик.";
         }
@@ -286,6 +299,14 @@ public sealed class WhatsAppDesktopAdapter(
     private static bool IsSendButtonName(string name) =>
         string.Equals(name, "Отправить", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "Send", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Поле ввода WhatsApp (contenteditable в WebView2) может отдавать «пустое» значение как перевод строки,
+    /// неразрывный пробел или невидимый символ нулевой ширины. Для проверок «пусто» и «совпадает» такие символы не считаются.
+    /// </summary>
+    private static string Normalize(string value) =>
+        new string(value.Where(c => c is not ('\u200B' or '\u200C' or '\u200D' or '\uFEFF' or '\u00A0')).ToArray())
+            .Trim();
 
     private static string Digits(string value) => new(value.Where(char.IsAsciiDigit).ToArray());
 

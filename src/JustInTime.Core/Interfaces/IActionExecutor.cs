@@ -14,6 +14,12 @@ public interface IActionExecutor
     bool RequiresInteractiveDesktop => false;
 
     /// <summary>
+    /// Свой предел времени для действия, если общего (SchedulerEngineOptions.ActionTimeout) мало. Например, запуск
+    /// мессенджера с нуля. null означает общий предел.
+    /// </summary>
+    TimeSpan? Timeout => null;
+
+    /// <summary>
     /// Выполняет действие и честно сообщает итог. Неожиданное исключение движок считает неизвестным результатом,
     /// поэтому ожидаемые сбои исполнитель должен возвращать как ExecutionOutcome.Failed.
     /// </summary>
