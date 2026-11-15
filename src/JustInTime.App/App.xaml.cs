@@ -6,6 +6,7 @@ using JustInTime.App.ViewModels;
 using JustInTime.Automation;
 using JustInTime.Automation.Session;
 using JustInTime.Automation.Uia;
+using JustInTime.Core.Models;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Services;
 using JustInTime.Infrastructure;
@@ -176,6 +177,13 @@ public partial class App : Application
                 services.AddSingleton<INetworkStatus, SystemNetworkStatus>();
                 services.AddSingleton<IWhatsAppProtocolLauncher, WhatsAppProtocolLauncher>();
                 services.AddSingleton<IMessengerAdapter, WhatsAppDesktopAdapter>();
+                services.AddSingleton<ITelegramLinkLauncher, TelegramLinkLauncher>();
+                services.AddSingleton<IMessengerAdapter>(sp => new TelegramDesktopAdapter(
+                    sp.GetRequiredService<IWindowFinder>(), sp.GetRequiredService<ITelegramLinkLauncher>(),
+                    sp.GetRequiredService<TimeProvider>(), MessengerApp.Telegram));
+                services.AddSingleton<IMessengerAdapter>(sp => new TelegramDesktopAdapter(
+                    sp.GetRequiredService<IWindowFinder>(), sp.GetRequiredService<ITelegramLinkLauncher>(),
+                    sp.GetRequiredService<TimeProvider>(), MessengerApp.TelegramDesktop));
                 services.AddSingleton<IActionExecutor, MessageSendExecutor>();
                 services.AddSingleton<IDesktopSession, DesktopSession>();
                 services.AddSingleton<IWindowFinder, UiaWindowFinder>();

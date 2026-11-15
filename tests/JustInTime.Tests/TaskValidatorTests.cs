@@ -39,7 +39,7 @@ public sealed class TaskValidatorTests
     public void Message_requires_recipient_and_text()
     {
         Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "", "текст")));
-        Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "Анна", "  ")));
+        Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "@anna_test", "  ")));
         Assert.Equal(2, TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "", "")).Count);
     }
 

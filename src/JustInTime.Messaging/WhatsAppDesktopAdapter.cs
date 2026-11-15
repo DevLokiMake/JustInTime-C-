@@ -56,10 +56,12 @@ public sealed class WhatsAppDesktopAdapter(
             var (window, field) = search.Match;
             composer = field;
 
-            if (field.GetValue().Length > 0)
+            var existing = field.GetValue();
+
+            if (existing.Length > 0)
             {
                 return SendResult.NotSent(
-                    "В поле WhatsApp уже есть текст. Он не изменён; очистите черновик и повторите задачу.");
+                    $"В поле WhatsApp уже есть текст (символов: {existing.Length}). Он не изменён; очистите черновик и повторите задачу.");
             }
 
             field.SetValue(text);

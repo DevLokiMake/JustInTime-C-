@@ -91,7 +91,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         var task = (await _service.CreateAsync(MessageInput())).Value!;
         var newInput = new TaskInput(
             "Новое название",
-            new SendMessagePayload(MessengerApp.Telegram, "Борис", "Эй"),
+            new SendMessagePayload(MessengerApp.Telegram, "@boris_dev", "Эй"),
             new AfterDelaySchedule(120));
 
         var result = await _service.UpdateAsync(task.Id, newInput);
@@ -103,7 +103,7 @@ public sealed class TaskServiceTests(PostgresFixture db) : IAsyncLifetime
         Assert.Equal(Now.AddMinutes(120), saved.ScheduledAt);
         Assert.Equal(ScheduledTaskStatus.Scheduled, saved.Status);
         Assert.Equal(
-            new SendMessagePayload(MessengerApp.Telegram, "Борис", "Эй"),
+            new SendMessagePayload(MessengerApp.Telegram, "@boris_dev", "Эй"),
             TaskPayloadSerializer.Deserialize(saved.ActionType, saved.Payload));
     }
 

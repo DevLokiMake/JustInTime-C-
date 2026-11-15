@@ -78,6 +78,11 @@ public static class TaskValidator
             {
                 errors.Add("Для WhatsApp укажите номер телефона в международном формате.");
             }
+            else if (payload.App is MessengerApp.Telegram or MessengerApp.TelegramDesktop
+                     && parsed.Recipient!.Kind == RecipientKind.Name)
+            {
+                errors.Add("Для Telegram укажите номер телефона с плюсом или @username.");
+            }
         }
 
         if (string.IsNullOrWhiteSpace(payload.Text))
