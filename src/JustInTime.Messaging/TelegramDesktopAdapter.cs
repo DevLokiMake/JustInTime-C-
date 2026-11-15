@@ -222,7 +222,16 @@ public sealed class TelegramDesktopAdapter(
 
             if (time.GetUtcNow() >= deadline)
             {
-                return new ButtonSearch(null, "Кнопка «Отправить» не найдена; сообщение не отправлено.");
+                var seen = UiSearch.FindAll(
+                        window, new ElementQuery(ControlType: "Button"), maxDepth: 20, maxNodes: 20000)
+                    .Where(b => b.ClassName.EndsWith("Ui::SendButton", StringComparison.Ordinal))
+                    .Select(b => $"«{b.Name}»{(b.IsEnabled ? string.Empty : " (недоступна)")}")
+                    .ToList();
+                var hint = seen.Count == 0
+                    ? " Кнопка отправки в окне не найдена."
+                    : $" Найдена кнопка отправки с именем {string.Join(", ", seen)}.";
+
+                return new ButtonSearch(null, "Кнопка «Отправить» не найдена; сообщение не отправлено." + hint);
             }
 
             await Task.Delay(PollInterval, time, cancellationToken);
@@ -277,10 +286,14 @@ public sealed class TelegramDesktopAdapter(
     private static string AppendCleanup(string message, string? cleanup) =>
         cleanup is null ? message : message + " " + cleanup;
 
+    /// <summary>
+    /// Qt отдаёт имена классов с префиксом «class » и вкладывает поле в обёртку: Ui::InputField содержит
+    /// Ui::InputField::Inner, и оба имеют шаблон Value. Берём только внутреннее поле, иначе поле «нашлось бы» дважды.
+    /// </summary>
     private static bool IsComposer(IUiElement element) =>
         !element.IsOffscreen
         && element.Patterns.Contains("Value")
-        && element.ClassName.StartsWith("Ui::InputField", StringComparison.Ordinal)
+        && element.ClassName.EndsWith("Ui::InputField::Inner", StringComparison.Ordinal)
         && (element.Name.StartsWith("Сообщение", StringComparison.OrdinalIgnoreCase)
             || element.Name.StartsWith("Message", StringComparison.OrdinalIgnoreCase));
 

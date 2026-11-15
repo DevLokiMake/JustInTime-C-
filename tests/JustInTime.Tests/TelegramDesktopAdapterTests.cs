@@ -87,17 +87,30 @@ public sealed class TelegramDesktopAdapterTests
 
     private static Fixture CreateFixture(string telegramProcess = "Telegram", TimeSpan? windowTimeout = null)
     {
-        var composer = new FakeUiElement("Edit", "Сообщение...", className: "Ui::InputField::Inner")
+        // Как в реальном дереве Telegram: обёртка и внутреннее поле, оба с Value, классы с префиксом «class ».
+        var wrapper = new FakeUiElement("Edit", "Сообщение...", className: "class Ui::InputField")
+        {
+            Patterns = ["Invoke", "Value"],
+            Value = string.Empty
+        };
+        var composer = new FakeUiElement("Edit", "Сообщение...", className: "class Ui::InputField::Inner")
+        {
+            Patterns = ["Invoke", "Value", "Text"],
+            Value = string.Empty
+        };
+        wrapper.Add(composer);
+        var search = new FakeUiElement("Edit", "Поиск", className: "class Ui::InputField::Inner")
         {
             Patterns = ["Value"],
             Value = string.Empty
         };
-        var sendButton = new FakeUiElement("Button", "Отправить", className: "Ui::SendButton")
+        var sendButton = new FakeUiElement("Button", "Отправить", className: "class Ui::SendButton")
         {
             Patterns = ["Invoke"]
         };
         var window = new FakeUiElement("Window", "Telegram");
-        window.Add(composer);
+        window.Add(wrapper);
+        window.Add(search);
         window.Add(sendButton);
 
         var finder = new FakeWindowFinder(new WindowInfo(window, telegramProcess == "Telegram" ? "Анна – (1)" : "Telegram Web", telegramProcess, 20));
