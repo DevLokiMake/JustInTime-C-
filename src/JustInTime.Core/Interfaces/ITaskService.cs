@@ -16,6 +16,12 @@ public interface ITaskService
     /// <summary>Возвращает задачу с ошибкой или неизвестным результатом в очередь на немедленный запуск.</summary>
     Task<ServiceResult> RetryAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Пользователь сам проверил результат задачи со статусом «Нужно действие»: действие было выполнено (delivered)
+    /// или нет. Повторяющаяся задача после этого получает следующий запуск.
+    /// </summary>
+    Task<ServiceResult> ResolveUnknownAsync(Guid id, bool delivered, CancellationToken cancellationToken = default);
+
     Task<ScheduledTask?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ScheduledTask>> GetListAsync(

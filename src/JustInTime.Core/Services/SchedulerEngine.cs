@@ -16,6 +16,7 @@ public sealed class SchedulerEngine
     private readonly TimeProvider _time;
     private readonly SchedulerEngineOptions _options;
     private readonly IDesktopSession? _desktop;
+    private readonly TaskRearmer _rearmer;
     private readonly Dictionary<ActionType, IActionExecutor> _executors;
 
     public SchedulerEngine(
@@ -28,6 +29,7 @@ public sealed class SchedulerEngine
         IDesktopSession? desktop = null)
     {
         _desktop = desktop;
+        _rearmer = new TaskRearmer(tasks, registrar, time);
         _tasks = tasks;
         _settings = settings;
         _registrar = registrar;
@@ -172,64 +174,9 @@ public sealed class SchedulerEngine
         return new TaskRunEntry(task.Id, task.Title, status, result, note);
     }
 
-    /// <summary>
-    /// Повторяющаяся задача после запуска (успешного, неудачного или пропущенного) получает время следующего
-    /// запуска и снова встаёт в очередь. Возвращает пояснение для журнала (пусто, если повтора нет).
-    /// Неизвестный результат сюда не попадает: такая задача ждёт решения пользователя.
-    /// </summary>
-    private async Task<string> RearmIfRecurringAsync(ScheduledTask task, CancellationToken cancellationToken)
-    {
-        if (!task.IsRecurring)
-        {
-            return string.Empty;
-        }
-
-        var rule = RecurrenceSerializer.Deserialize(task.Recurrence);
-
-        if (rule is null)
-        {
-            return " Повтор остановлен: правило повтора повреждено, задачу нужно создать заново.";
-        }
-
-        TimeZoneInfo zone;
-
-        try
-        {
-            zone = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            zone = _time.LocalTimeZone;
-        }
-
-        var now = Now();
-        var next = RecurrenceCalculator.Next(rule, zone, task.ScheduledAt, now);
-
-        if (next is null)
-        {
-            return " Повтор остановлен: не удалось вычислить следующий запуск.";
-        }
-
-        if (!await _tasks.TryRearmAsync(task.Id, next.Value, now, cancellationToken))
-        {
-            return string.Empty;
-        }
-
-        var current = await _tasks.GetByIdAsync(task.Id, cancellationToken);
-
-        if (current is not null)
-        {
-            var registration = await _registrar.RegisterAsync(current, cancellationToken);
-
-            if (registration.Succeeded)
-            {
-                await _tasks.TryMarkScheduledAsync(task.Id, Now(), cancellationToken);
-            }
-        }
-
-        var local = TimeZoneInfo.ConvertTimeFromUtc(next.Value, zone);
-        return $" Следующий запуск: {local:dd.MM.yyyy HH:mm}.";
-    }
+    /// <summary>Повторяющаяся задача после запуска получает следующий (см. TaskRearmer). Неизвестный результат сюда не попадает.</summary>
+    private Task<string> RearmIfRecurringAsync(ScheduledTask task, CancellationToken cancellationToken) =>
+        _rearmer.RearmIfRecurringAsync(task, cancellationToken);
 
     private async Task<ExecutionOutcome> ExecuteSafelyAsync(ScheduledTask task, CancellationToken cancellationToken)
     {

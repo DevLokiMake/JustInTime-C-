@@ -127,6 +127,25 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
         return affected > 0;
     }
 
+    public async Task<bool> TryResolveUnknownAsync(
+        Guid id, bool delivered, string note, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        var newStatus = delivered ? ScheduledTaskStatus.Completed : ScheduledTaskStatus.Failed;
+        var error = delivered ? null : note;
+
+        var affected = await db.Tasks
+            .Where(t => t.Id == id && t.Status == ScheduledTaskStatus.NeedsUserAction)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, newStatus)
+                    .SetProperty(t => t.LastError, error)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        return affected > 0;
+    }
+
     public async Task<bool> TryRearmAsync(
         Guid id, DateTime nextUtc, DateTime nowUtc, CancellationToken cancellationToken = default)
     {

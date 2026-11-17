@@ -200,6 +200,7 @@ public partial class App : Application
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
                 services.AddTransient<MyTasksViewModel>();
+                services.AddTransient<ScheduledMessagesViewModel>();
                 services.AddTransient<TaskEditorViewModel>();
                 services.AddTransient<HistoryViewModel>();
                 services.AddTransient<SettingsViewModel>();

@@ -44,6 +44,13 @@ public interface ITaskRepository
         Guid id, DateTime scheduledAtUtc, DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Пользователь подтвердил итог неизвестного запуска: NeedsUserAction → Completed (delivered) или Failed.
+    /// note попадает в LastError для неудачи. false, если задача не в статусе NeedsUserAction.
+    /// </summary>
+    Task<bool> TryResolveUnknownAsync(
+        Guid id, bool delivered, string note, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Повторяющаяся задача после запуска: Completed или Failed → Pending с временем следующего запуска.
     /// false, если задача не повторяющаяся, отменена, изменена или уже в другом статусе.
     /// </summary>

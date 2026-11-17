@@ -5,6 +5,8 @@ namespace JustInTime.Core.Services;
 
 public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar, TimeProvider time) : ITaskService
 {
+    private readonly TaskRearmer _rearmer = new(tasks, registrar, time);
+
     private sealed record Prepared(
         string Title, TaskPayload Payload, ResolvedSchedule Schedule, string PayloadJson, string? RecurrenceJson);
 
@@ -128,6 +130,35 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
         return ServiceResult.Fail(task is null
             ? "Задача не найдена."
             : $"Повторить можно только задачу с ошибкой или неизвестным результатом, а эта в статусе «{task.Status.ToDisplayName()}».");
+    }
+
+    public async Task<ServiceResult> ResolveUnknownAsync(
+        Guid id, bool delivered, CancellationToken cancellationToken = default)
+    {
+        var task = await tasks.GetByIdAsync(id, cancellationToken);
+
+        if (task is null)
+        {
+            return ServiceResult.Fail("Задача не найдена.");
+        }
+
+        var note = delivered
+            ? "Подтверждено пользователем: действие было выполнено."
+            : "Подтверждено пользователем: действие не было выполнено.";
+
+        if (!await tasks.TryResolveUnknownAsync(id, delivered, note, UtcNow(), cancellationToken))
+        {
+            return ServiceResult.Fail(
+                $"Подтвердить результат можно только у задачи в статусе «{ScheduledTaskStatus.NeedsUserAction.ToDisplayName()}», " +
+                $"а эта в статусе «{task.Status.ToDisplayName()}».");
+        }
+
+        var next = await _rearmer.RearmIfRecurringAsync(task, cancellationToken);
+
+        // «Следующий запуск...» это не предупреждение; предупреждаем только если повтор остановлен.
+        return next.Contains("остановлен", StringComparison.Ordinal)
+            ? ServiceResult.OkWithWarnings(new[] { next.Trim() })
+            : ServiceResult.Ok();
     }
 
     public Task<ScheduledTask?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>

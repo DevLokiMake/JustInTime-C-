@@ -29,7 +29,7 @@ public sealed partial class NavigationService(
             NavSection.Dashboard => services.GetRequiredService<DashboardViewModel>(),
             NavSection.MyTasks => services.GetRequiredService<MyTasksViewModel>(),
             NavSection.CreateTask => services.GetRequiredService<TaskEditorViewModel>(),
-            NavSection.ScheduledMessages => Placeholder("Scheduled Messages", "Запланированные сообщения в WhatsApp и Telegram."),
+            NavSection.ScheduledMessages => services.GetRequiredService<ScheduledMessagesViewModel>(),
             NavSection.Automation => services.GetRequiredService<AutomationViewModel>(),
             NavSection.History => services.GetRequiredService<HistoryViewModel>(),
             NavSection.Settings => services.GetRequiredService<SettingsViewModel>(),
