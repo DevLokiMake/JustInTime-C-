@@ -112,6 +112,9 @@ namespace JustInTime.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("Recurrence")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("ScheduledAt")
                         .HasColumnType("timestamp with time zone");
 
