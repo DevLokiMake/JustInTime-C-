@@ -14,6 +14,9 @@ public sealed class TaskItemViewModel
         Summary = UiNames.Summary(TaskPayloadSerializer.Deserialize(task.ActionType, task.Payload));
         WhenText = task.ScheduledAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
         StatusText = task.Status.ToDisplayName();
+
+        var rule = task.IsRecurring ? RecurrenceSerializer.Deserialize(task.Recurrence) : null;
+        RepeatText = rule is null ? null : RecurrenceDescriber.Describe(rule);
         ErrorText = task.LastError;
         AttemptsText = task.AttemptCount > 0 ? $"  ·  Попыток: {task.AttemptCount}" : string.Empty;
 
@@ -35,6 +38,11 @@ public sealed class TaskItemViewModel
     public string WhenText { get; }
 
     public string StatusText { get; }
+
+    /// <summary>Описание повтора или null для одноразовой задачи.</summary>
+    public string? RepeatText { get; }
+
+    public bool IsRepeating => RepeatText is not null;
 
     public string? ErrorText { get; }
 

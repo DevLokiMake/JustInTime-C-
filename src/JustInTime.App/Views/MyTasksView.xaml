@@ -105,6 +105,10 @@
                                     <Run Text="{Binding WhenText, Mode=OneWay}" />
                                     <Run Text="{Binding AttemptsText, Mode=OneWay}" />
                                 </TextBlock>
+                                <TextBlock Text="{Binding RepeatText, StringFormat='Повтор: {0}'}"
+                                           Style="{StaticResource Muted}"
+                                           Margin="0,2,0,0"
+                                           Visibility="{Binding IsRepeating, Converter={StaticResource BoolToVis}}" />
 
                                 <TextBlock Text="{Binding ErrorText}"
                                            Foreground="{StaticResource DangerBrush}"

@@ -16,6 +16,26 @@ public enum ScheduleMode
     AtTime
 }
 
+public enum RepeatMode
+{
+    None,
+    Interval,
+    Daily,
+    Weekly,
+    Monthly
+}
+
+/// <summary>День недели в форме повтора: флажок с подписью.</summary>
+public sealed partial class WeekdayChoice(DayOfWeek day, string label) : ObservableObject
+{
+    public DayOfWeek Day { get; } = day;
+
+    public string Label { get; } = label;
+
+    [ObservableProperty]
+    private bool _isChecked;
+}
+
 /// <summary>Форма задачи. Один экран и для создания, и для редактирования.</summary>
 public sealed partial class TaskEditorViewModel : ObservableObject, IInitializableViewModel
 {
@@ -51,6 +71,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         _selectedSetting = SettingOptions[0];
         _selectedSwitch = SwitchOptions[0];
         _selectedMode = ModeOptions[0];
+        _selectedRepeat = RepeatOptions[0];
 
         var suggested = time.GetLocalNow().AddMinutes(30);
         _dateText = suggested.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
@@ -91,6 +112,26 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     [
         new(ScheduleMode.AfterDelay, "Через несколько минут"),
         new(ScheduleMode.AtTime, "В указанное время")
+    ];
+
+    public IReadOnlyList<Option<RepeatMode>> RepeatOptions { get; } =
+    [
+        new(RepeatMode.None, "Не повторять"),
+        new(RepeatMode.Interval, "Каждые N минут"),
+        new(RepeatMode.Daily, "Каждые N дней"),
+        new(RepeatMode.Weekly, "По дням недели"),
+        new(RepeatMode.Monthly, "Раз в месяц")
+    ];
+
+    public IReadOnlyList<WeekdayChoice> Weekdays { get; } =
+    [
+        new(DayOfWeek.Monday, "Пн"),
+        new(DayOfWeek.Tuesday, "Вт"),
+        new(DayOfWeek.Wednesday, "Ср"),
+        new(DayOfWeek.Thursday, "Чт"),
+        new(DayOfWeek.Friday, "Пт"),
+        new(DayOfWeek.Saturday, "Сб"),
+        new(DayOfWeek.Sunday, "Вс")
     ];
 
     public ObservableCollection<string> Errors { get; } = [];
@@ -171,6 +212,21 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     [ObservableProperty]
     private string _timeZoneText;
 
+    // Повтор
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRepeating))]
+    [NotifyPropertyChangedFor(nameof(ShowEvery))]
+    [NotifyPropertyChangedFor(nameof(ShowWeekdays))]
+    [NotifyPropertyChangedFor(nameof(ShowDayOfMonth))]
+    [NotifyPropertyChangedFor(nameof(EveryLabel))]
+    private Option<RepeatMode>? _selectedRepeat;
+
+    [ObservableProperty]
+    private string _repeatEveryText = "1";
+
+    [ObservableProperty]
+    private string _dayOfMonthText = string.Empty;
+
     public bool IsMessageAction => SelectedAction?.Value == ActionType.SendMessage;
 
     public bool IsSystemAction => SelectedAction?.Value == ActionType.ToggleSystemSetting;
@@ -178,6 +234,22 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     public bool IsProgramAction => SelectedAction?.Value == ActionType.LaunchProgram;
 
     public bool IsUrlAction => SelectedAction?.Value == ActionType.OpenUrl;
+
+    public bool IsRepeating => SelectedRepeat?.Value is not (null or RepeatMode.None);
+
+    public bool ShowEvery => SelectedRepeat?.Value is RepeatMode.Interval or RepeatMode.Daily or RepeatMode.Monthly;
+
+    public bool ShowWeekdays => SelectedRepeat?.Value == RepeatMode.Weekly;
+
+    public bool ShowDayOfMonth => SelectedRepeat?.Value == RepeatMode.Monthly;
+
+    public string EveryLabel => SelectedRepeat?.Value switch
+    {
+        RepeatMode.Interval => $"Каждые сколько минут (от {RecurrenceRule.MinIntervalMinutes})",
+        RepeatMode.Daily => "Каждые сколько дней",
+        RepeatMode.Monthly => "Каждые сколько месяцев",
+        _ => string.Empty
+    };
 
     public bool IsDelayMode => SelectedMode?.Value == ScheduleMode.AfterDelay;
 
@@ -253,6 +325,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
         var payload = BuildPayload();
         var schedule = BuildSchedule(errors);
+        var recurrence = BuildRecurrence(errors);
 
         if (payload is null)
         {
@@ -264,8 +337,87 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             return false;
         }
 
-        input = new TaskInput(Title, payload, schedule);
+        input = new TaskInput(Title, payload, schedule, recurrence);
         return true;
+    }
+
+    /// <summary>null, если повтор не выбран. Ошибки ввода добавляет в errors.</summary>
+    private RecurrenceRule? BuildRecurrence(List<string> errors)
+    {
+        var mode = SelectedRepeat?.Value ?? RepeatMode.None;
+
+        if (mode == RepeatMode.None)
+        {
+            return null;
+        }
+
+        var every = 1;
+
+        if (mode is RepeatMode.Interval or RepeatMode.Daily or RepeatMode.Monthly
+            && !int.TryParse(RepeatEveryText?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out every))
+        {
+            errors.Add("В повторе укажите целое число, например 1.");
+            return null;
+        }
+
+        switch (mode)
+        {
+            case RepeatMode.Interval:
+                return new RecurrenceRule(RecurrenceKind.Interval, every);
+
+            case RepeatMode.Daily:
+                return new RecurrenceRule(RecurrenceKind.Daily, every);
+
+            case RepeatMode.Weekly:
+                var mask = RecurrenceRule.MaskOf(Weekdays.Where(d => d.IsChecked).Select(d => d.Day).ToArray());
+                return new RecurrenceRule(RecurrenceKind.Weekly, DaysOfWeekMask: mask);
+
+            default:
+                // Пустое число месяца означает «как в дате первого запуска».
+                int? day = null;
+
+                if (!string.IsNullOrWhiteSpace(DayOfMonthText))
+                {
+                    if (!int.TryParse(DayOfMonthText.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
+                    {
+                        errors.Add("Число месяца укажите целым числом от 1 до 31.");
+                        return null;
+                    }
+
+                    day = parsed;
+                }
+
+                return new RecurrenceRule(RecurrenceKind.Monthly, every, DayOfMonth: day);
+        }
+    }
+
+    private void FillRecurrence(ScheduledTask task)
+    {
+        var rule = task.IsRecurring ? RecurrenceSerializer.Deserialize(task.Recurrence) : null;
+
+        if (rule is null)
+        {
+            SelectedRepeat = RepeatOptions[0];
+            return;
+        }
+
+        var mode = rule.Kind switch
+        {
+            RecurrenceKind.Interval => RepeatMode.Interval,
+            RecurrenceKind.Daily => RepeatMode.Daily,
+            RecurrenceKind.Weekly => RepeatMode.Weekly,
+            _ => RepeatMode.Monthly
+        };
+
+        SelectedRepeat = RepeatOptions.First(o => o.Value == mode);
+
+        RepeatEveryText = rule.Every.ToString(CultureInfo.InvariantCulture);
+        DayOfMonthText = rule.DayOfMonth?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+        foreach (var day in Weekdays)
+        {
+            day.IsChecked = rule.Includes(day.Day);
+        }
     }
 
     private TaskPayload? BuildPayload() => SelectedAction?.Value switch
@@ -338,6 +490,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             SelectedAction = ActionOptions.First(o => o.Value == task.ActionType);
             Fill(payload);
             FillTime(task);
+            FillRecurrence(task);
 
             if (!ScheduledTaskStatuses.Editable.Contains(task.Status))
             {

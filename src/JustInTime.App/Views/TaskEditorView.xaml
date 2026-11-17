@@ -150,6 +150,61 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Повтор -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Повтор" Style="{StaticResource H2}" />
+                        <TextBlock Text="Первый запуск берётся из блока «Когда выполнить», время суток и число месяца повторяются."
+                                   Style="{StaticResource Muted}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0" />
+
+                        <ListBox Style="{StaticResource ChipList}"
+                                 Margin="0,14,0,0"
+                                 ItemsSource="{Binding RepeatOptions}"
+                                 SelectedItem="{Binding SelectedRepeat, Mode=TwoWay}"
+                                 DisplayMemberPath="Title" />
+
+                        <StackPanel Visibility="{Binding ShowEvery, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding EveryLabel}" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
+                            <TextBox Text="{Binding RepeatEveryText, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="140"
+                                     HorizontalAlignment="Left"
+                                     MaxLength="6" />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding ShowWeekdays, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Дни недели" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
+                            <ItemsControl ItemsSource="{Binding Weekdays}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Label}"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                  Foreground="{StaticResource TextBrush}"
+                                                  Margin="0,0,16,0" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding ShowDayOfMonth, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Число месяца (пусто: как в дате первого запуска; в коротких месяцах последний день)"
+                                       Style="{StaticResource FieldLabel}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,6" />
+                            <TextBox Text="{Binding DayOfMonthText, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="110"
+                                     HorizontalAlignment="Left"
+                                     MaxLength="2" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                     <Button Content="{Binding SaveButtonText}"
                             Command="{Binding SaveCommand}"
