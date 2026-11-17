@@ -31,6 +31,9 @@ public class ScheduledTask
 
     public bool IsRecurring { get; set; }
 
+    /// <summary>Правило повтора в JSON (RecurrenceRule). null для одноразовой задачи.</summary>
+    public string? Recurrence { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

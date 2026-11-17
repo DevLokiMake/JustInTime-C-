@@ -120,9 +120,15 @@ public sealed class SchedulerEngine
                 $"Пропущена: запуск опоздал на {FormatDuration(late)} при допустимых {FormatDuration(grace)}. " +
                 "Компьютер был выключен или приложение не работало в нужное время. Можно повторить задачу вручную.";
 
-            return await _tasks.TryMarkMissedAsync(task.Id, message, now, cancellationToken)
-                ? new TaskRunEntry(task.Id, task.Title, ScheduledTaskStatus.Failed, ExecutionResult.Skipped, message)
-                : null;
+            if (!await _tasks.TryMarkMissedAsync(task.Id, message, now, cancellationToken))
+            {
+                return null;
+            }
+
+            var missedNote = await RearmIfRecurringAsync(task, cancellationToken);
+
+            return new TaskRunEntry(
+                task.Id, task.Title, ScheduledTaskStatus.Failed, ExecutionResult.Skipped, message + missedNote);
         }
 
         if (_desktop is not null
@@ -158,7 +164,71 @@ public sealed class SchedulerEngine
             ? outcome.Message
             : "Результат не сохранён: состояние задачи изменилось во время выполнения. " + outcome.Message;
 
+        if (saved && status is ScheduledTaskStatus.Completed or ScheduledTaskStatus.Failed)
+        {
+            note += await RearmIfRecurringAsync(task, cancellationToken);
+        }
+
         return new TaskRunEntry(task.Id, task.Title, status, result, note);
+    }
+
+    /// <summary>
+    /// Повторяющаяся задача после запуска (успешного, неудачного или пропущенного) получает время следующего
+    /// запуска и снова встаёт в очередь. Возвращает пояснение для журнала (пусто, если повтора нет).
+    /// Неизвестный результат сюда не попадает: такая задача ждёт решения пользователя.
+    /// </summary>
+    private async Task<string> RearmIfRecurringAsync(ScheduledTask task, CancellationToken cancellationToken)
+    {
+        if (!task.IsRecurring)
+        {
+            return string.Empty;
+        }
+
+        var rule = RecurrenceSerializer.Deserialize(task.Recurrence);
+
+        if (rule is null)
+        {
+            return " Повтор остановлен: правило повтора повреждено, задачу нужно создать заново.";
+        }
+
+        TimeZoneInfo zone;
+
+        try
+        {
+            zone = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            zone = _time.LocalTimeZone;
+        }
+
+        var now = Now();
+        var next = RecurrenceCalculator.Next(rule, zone, task.ScheduledAt, now);
+
+        if (next is null)
+        {
+            return " Повтор остановлен: не удалось вычислить следующий запуск.";
+        }
+
+        if (!await _tasks.TryRearmAsync(task.Id, next.Value, now, cancellationToken))
+        {
+            return string.Empty;
+        }
+
+        var current = await _tasks.GetByIdAsync(task.Id, cancellationToken);
+
+        if (current is not null)
+        {
+            var registration = await _registrar.RegisterAsync(current, cancellationToken);
+
+            if (registration.Succeeded)
+            {
+                await _tasks.TryMarkScheduledAsync(task.Id, Now(), cancellationToken);
+            }
+        }
+
+        var local = TimeZoneInfo.ConvertTimeFromUtc(next.Value, zone);
+        return $" Следующий запуск: {local:dd.MM.yyyy HH:mm}.";
     }
 
     private async Task<ExecutionOutcome> ExecuteSafelyAsync(ScheduledTask task, CancellationToken cancellationToken)

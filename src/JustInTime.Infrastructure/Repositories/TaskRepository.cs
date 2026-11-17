@@ -82,6 +82,7 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
                     .SetProperty(t => t.TimeZone, update.TimeZone)
                     .SetProperty(t => t.Payload, update.Payload)
                     .SetProperty(t => t.IsRecurring, update.IsRecurring)
+                    .SetProperty(t => t.Recurrence, update.Recurrence)
                     .SetProperty(t => t.Status, ScheduledTaskStatus.Pending)
                     .SetProperty(t => t.LastError, (string?)null)
                     .SetProperty(t => t.UpdatedAt, nowUtc),
@@ -120,6 +121,25 @@ public sealed class TaskRepository(IDbContextFactory<JustInTimeDbContext> contex
                     .SetProperty(t => t.Status, ScheduledTaskStatus.Pending)
                     .SetProperty(t => t.ScheduledAt, scheduledAtUtc)
                     .SetProperty(t => t.LastError, (string?)null)
+                    .SetProperty(t => t.UpdatedAt, nowUtc),
+                cancellationToken);
+
+        return affected > 0;
+    }
+
+    public async Task<bool> TryRearmAsync(
+        Guid id, DateTime nextUtc, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        var rearmable = ScheduledTaskStatuses.Rearmable;
+
+        // Результат прошлого запуска остаётся в ExecutionHistory и в LastError, поэтому статус можно вернуть в Pending.
+        var affected = await db.Tasks
+            .Where(t => t.Id == id && t.IsRecurring && rearmable.Contains(t.Status))
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(t => t.Status, ScheduledTaskStatus.Pending)
+                    .SetProperty(t => t.ScheduledAt, nextUtc)
                     .SetProperty(t => t.UpdatedAt, nowUtc),
                 cancellationToken);
 

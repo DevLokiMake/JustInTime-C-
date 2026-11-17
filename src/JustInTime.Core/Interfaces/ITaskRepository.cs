@@ -44,6 +44,12 @@ public interface ITaskRepository
         Guid id, DateTime scheduledAtUtc, DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Повторяющаяся задача после запуска: Completed или Failed → Pending с временем следующего запуска.
+    /// false, если задача не повторяющаяся, отменена, изменена или уже в другом статусе.
+    /// </summary>
+    Task<bool> TryRearmAsync(Guid id, DateTime nextUtc, DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Атомарно переводит задачу в Running, увеличивает счётчик попыток и создаёт запись истории.
     /// Возвращает запись истории, либо null, если запустить нельзя: время не наступило,
     /// статус не позволяет запуск или задачу уже взял другой исполнитель.

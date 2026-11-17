@@ -5,7 +5,8 @@ namespace JustInTime.Core.Services;
 
 public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar, TimeProvider time) : ITaskService
 {
-    private sealed record Prepared(string Title, TaskPayload Payload, ResolvedSchedule Schedule, string PayloadJson);
+    private sealed record Prepared(
+        string Title, TaskPayload Payload, ResolvedSchedule Schedule, string PayloadJson, string? RecurrenceJson);
 
     public async Task<ServiceResult<ScheduledTask>> CreateAsync(
         TaskInput input, CancellationToken cancellationToken = default)
@@ -30,6 +31,8 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
             TimeZone = p.Schedule.TimeZoneId,
             Status = ScheduledTaskStatus.Pending,
             Payload = p.PayloadJson,
+            IsRecurring = p.RecurrenceJson is not null,
+            Recurrence = p.RecurrenceJson,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -70,7 +73,8 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
         }
 
         var p = prepared.Value!;
-        var update = new TaskUpdate(p.Title, p.Schedule.Utc, p.Schedule.TimeZoneId, p.PayloadJson, false);
+        var update = new TaskUpdate(
+            p.Title, p.Schedule.Utc, p.Schedule.TimeZoneId, p.PayloadJson, p.RecurrenceJson is not null, p.RecurrenceJson);
 
         if (await tasks.TryUpdateAsync(id, update, now, cancellationToken))
         {
@@ -171,13 +175,62 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
             errors.AddRange(schedule.Errors);
         }
 
-        if (errors.Count > 0 || payload is null)
+        string? recurrenceJson = null;
+        var resolved = schedule.Value;
+
+        if (input.Recurrence is { } rule && schedule.Succeeded)
+        {
+            errors.AddRange(RecurrenceValidator.Validate(rule, requireComplete: false));
+
+            if (errors.Count == 0)
+            {
+                var completed = CompleteRule(rule, resolved!);
+                var zone = ZoneOf(resolved!.TimeZoneId);
+                var first = RecurrenceCalculator.FirstOnOrAfter(completed, zone, resolved.Utc);
+
+                if (first is null)
+                {
+                    errors.Add("Не удалось вычислить первый запуск по правилу повтора.");
+                }
+                else
+                {
+                    resolved = resolved with { Utc = first.Value };
+                    recurrenceJson = RecurrenceSerializer.Serialize(completed);
+                }
+            }
+        }
+
+        if (errors.Count > 0 || payload is null || resolved is null)
         {
             return ServiceResult<Prepared>.Fail(errors);
         }
 
         return ServiceResult<Prepared>.Ok(new Prepared(
-            title, payload, schedule.Value!, TaskPayloadSerializer.Serialize(payload)));
+            title, payload, resolved, TaskPayloadSerializer.Serialize(payload), recurrenceJson));
+    }
+
+    /// <summary>Достраивает правило: время суток и число месяца берутся из выбранного пользователем первого запуска.</summary>
+    private RecurrenceRule CompleteRule(RecurrenceRule rule, ResolvedSchedule start)
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(start.Utc, ZoneOf(start.TimeZoneId));
+
+        return rule with
+        {
+            TimeOfDayMinutes = rule.TimeOfDayMinutes ?? local.Hour * 60 + local.Minute,
+            DayOfMonth = rule.Kind == RecurrenceKind.Monthly ? rule.DayOfMonth ?? local.Day : null
+        };
+    }
+
+    private TimeZoneInfo ZoneOf(string id)
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(id);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return time.LocalTimeZone;
+        }
     }
 
     private async Task<string> ExplainRefusalAsync(Guid id, string action, CancellationToken cancellationToken)

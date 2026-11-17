@@ -71,6 +71,16 @@ public static class ScheduledTaskStatuses
         ScheduledTaskStatus.WaitingForNetwork
     ];
 
+    /// <summary>
+    /// Повторяющаяся задача в этих статусах после запуска получает время следующего запуска. NeedsUserAction сюда
+    /// не входит: пока результат неизвестен, повтор приостанавливается до решения пользователя.
+    /// </summary>
+    public static readonly ScheduledTaskStatus[] Rearmable =
+    [
+        ScheduledTaskStatus.Completed,
+        ScheduledTaskStatus.Failed
+    ];
+
     /// <summary>Задача завершена и больше сама не выполнится.</summary>
     public static readonly ScheduledTaskStatus[] Finished =
     [

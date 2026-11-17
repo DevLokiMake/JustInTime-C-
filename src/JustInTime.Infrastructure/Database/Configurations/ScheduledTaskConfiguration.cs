@@ -21,6 +21,7 @@ public sealed class ScheduledTaskConfiguration : IEntityTypeConfiguration<Schedu
         builder.Property(t => t.TimeZone).IsRequired().HasMaxLength(100);
         builder.Property(t => t.Payload).IsRequired().HasColumnType("jsonb");
         builder.Property(t => t.LastError).HasMaxLength(2000);
+        builder.Property(t => t.Recurrence).HasColumnType("jsonb");
 
         builder.Property(t => t.ScheduledAt).HasColumnType("timestamp with time zone");
         builder.Property(t => t.CreatedAt).HasColumnType("timestamp with time zone");
