@@ -42,7 +42,7 @@ public sealed class RecurrenceEngineTests(PostgresFixture db) : IAsyncLifetime
     [Fact]
     public async Task Successful_run_of_a_recurring_task_schedules_the_next_day()
     {
-        var task = await AddDailyAsync(Now.AddHours(-3));   // 09:00 сегодня
+        var task = await AddDailyAsync(Now.AddMinutes(-10));   // 11:50 сегодня, опоздание в пределах допустимых 30 минут
 
         await CreateEngine().RunDueAsync();
 
@@ -58,7 +58,7 @@ public sealed class RecurrenceEngineTests(PostgresFixture db) : IAsyncLifetime
     public async Task Failed_run_does_not_stop_the_series()
     {
         _executor.Behavior = _ => ExecutionOutcome.Failed("нет сети");
-        var task = await AddDailyAsync(Now.AddHours(-3));
+        var task = await AddDailyAsync(Now.AddMinutes(-10));
 
         await CreateEngine().RunDueAsync();
 
@@ -71,19 +71,19 @@ public sealed class RecurrenceEngineTests(PostgresFixture db) : IAsyncLifetime
     public async Task Unknown_result_pauses_the_series_until_the_user_decides()
     {
         _executor.Behavior = _ => ExecutionOutcome.Unknown("не ясно");
-        var task = await AddDailyAsync(Now.AddHours(-3));
+        var task = await AddDailyAsync(Now.AddMinutes(-10));
 
         await CreateEngine().RunDueAsync();
 
         var saved = (await _tasks.GetByIdAsync(task.Id))!;
         Assert.Equal(ScheduledTaskStatus.NeedsUserAction, saved.Status);
-        Assert.Equal(Now.AddHours(-3), saved.ScheduledAt);
+        Assert.Equal(Now.AddMinutes(-10), saved.ScheduledAt);
     }
 
     [Fact]
     public async Task One_off_task_is_not_rearmed()
     {
-        var task = await AddDailyAsync(Now.AddHours(-3), recurring: false);
+        var task = await AddDailyAsync(Now.AddMinutes(-10), recurring: false);
 
         await CreateEngine().RunDueAsync();
 
@@ -107,7 +107,7 @@ public sealed class RecurrenceEngineTests(PostgresFixture db) : IAsyncLifetime
     [Fact]
     public async Task Cancelled_recurring_task_is_not_rearmed()
     {
-        var task = await AddDailyAsync(Now.AddHours(-3));
+        var task = await AddDailyAsync(Now.AddMinutes(-10));
         await _tasks.TryCancelAsync(task.Id, Now);
 
         Assert.False(await _tasks.TryRearmAsync(task.Id, Now.AddDays(1), Now));
