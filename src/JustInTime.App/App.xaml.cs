@@ -240,6 +240,8 @@ public partial class App : Application
                     Environment.ProcessPath
                         ?? throw new InvalidOperationException("Не удалось определить путь к исполняемому файлу приложения.")));
                 services.AddSingleton<IAppLifecycle, AppLifecycle>();
+                services.AddSingleton<ITextRecognizer, WindowsTextRecognizer>();
+                services.AddSingleton<IImageInputService, ImageInputService>();
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<MainViewModel>();

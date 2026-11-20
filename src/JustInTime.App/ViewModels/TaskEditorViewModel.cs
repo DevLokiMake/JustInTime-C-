@@ -45,6 +45,8 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     private readonly ITaskService _tasks;
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogs;
+    private readonly ITextRecognizer _recognizer;
+    private readonly IImageInputService _images;
     private readonly TimeProvider _time;
     private readonly ILogger<TaskEditorViewModel> _logger;
 
@@ -58,8 +60,12 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         INavigationService navigation,
         TimeProvider time,
         IDialogService dialogs,
+        ITextRecognizer recognizer,
+        IImageInputService images,
         ILogger<TaskEditorViewModel> logger)
     {
+        _recognizer = recognizer;
+        _images = images;
         _tasks = tasks;
         _dialogs = dialogs;
         _navigation = navigation;
@@ -175,6 +181,21 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
     [ObservableProperty]
     private string _messageText = string.Empty;
+
+    // Распознавание текста с изображения
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PickImageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PasteImageCommand))]
+    private bool _isRecognizing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRecognitionNote))]
+    private string? _recognitionNote;
+
+    [ObservableProperty]
+    private bool _recognitionIsError;
+
+    public bool HasRecognitionNote => !string.IsNullOrEmpty(RecognitionNote);
 
     // Системная настройка
     [ObservableProperty]
@@ -318,6 +339,73 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
     [RelayCommand]
     private void Cancel() => _navigation.Navigate(NavSection.MyTasks);
+
+    [RelayCommand(CanExecute = nameof(CanRecognize))]
+    private Task PickImageAsync() => RecognizeAsync(_images.PickFile());
+
+    [RelayCommand(CanExecute = nameof(CanRecognize))]
+    private Task PasteImageAsync() => RecognizeAsync(_images.FromClipboard());
+
+    private bool CanRecognize() => !IsRecognizing;
+
+    /// <summary>Файл, перетащенный в поле текста.</summary>
+    public Task RecognizeFileAsync(string path) =>
+        IsRecognizing ? Task.CompletedTask : RecognizeAsync(_images.ReadFile(path));
+
+    private async Task RecognizeAsync(ImageInputResult input)
+    {
+        if (input.Cancelled)
+        {
+            return;
+        }
+
+        if (input.Bytes is null)
+        {
+            ShowRecognition(input.Error ?? "Не удалось получить изображение.", true);
+            return;
+        }
+
+        IsRecognizing = true;
+        ShowRecognition("Распознаю текст...", false);
+
+        try
+        {
+            var result = await _recognizer.RecognizeAsync(input.Bytes);
+
+            if (!result.Success)
+            {
+                ShowRecognition(result.Error ?? "Не удалось распознать текст.", true);
+                return;
+            }
+
+            // Не затираем то, что пользователь уже написал: распознанное добавляется в конец.
+            MessageText = string.IsNullOrWhiteSpace(MessageText) ? result.Text : MessageText.TrimEnd() + " " + result.Text;
+
+            var length = MessageText.Length > TaskValidator.MaxTextLength
+                ? $" Текст длиннее {TaskValidator.MaxTextLength} символов, его нужно сократить."
+                : string.Empty;
+
+            ShowRecognition(
+                $"Распознано символов: {result.Text.Length} (язык: {result.Language}). Перенос строк заменён пробелами. " +
+                "Проверьте текст перед сохранением: распознавание может ошибаться." + length,
+                false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось распознать текст на изображении");
+            ShowRecognition($"Не удалось распознать текст: {ex.Message}", true);
+        }
+        finally
+        {
+            IsRecognizing = false;
+        }
+    }
+
+    private void ShowRecognition(string text, bool isError)
+    {
+        RecognitionNote = text;
+        RecognitionIsError = isError;
+    }
 
     private bool TryBuildInput(List<string> errors, out TaskInput input)
     {
