@@ -79,6 +79,56 @@ public sealed class TelegramDesktopAdapterTests
         Assert.Equal(0, f.SendButton.InvokeCount);
     }
 
+    [Fact]
+    public async Task Changed_interface_without_composer_is_not_sent()
+    {
+        var f = CreateFixture(windowTimeout: TimeSpan.FromMilliseconds(600));
+        f.Composer.Name = "Что-то другое";   // Telegram переименовал поле: распознать его нельзя
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.NotSent, result.Status);
+        Assert.Contains("поле ввода", result.Message);
+        Assert.Equal(0, f.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Changed_interface_without_send_button_is_not_sent_and_draft_is_cleared()
+    {
+        var f = CreateFixture();
+        f.SendButton.Name = "Что-то другое";
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.NotSent, result.Status);
+        Assert.Equal(0, f.SendButton.InvokeCount);
+        Assert.Equal(string.Empty, f.Composer.Value);
+    }
+
+    [Fact]
+    public async Task Text_that_cannot_be_verified_is_not_sent()
+    {
+        var f = CreateFixture();
+        f.Composer.IgnoreSetValue = true;
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.NotSent, result.Status);
+        Assert.Equal(0, f.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Click_without_cleared_field_is_uncertain_and_clicked_only_once()
+    {
+        var f = CreateFixture();   // кнопка нажимается, но поле не очищается
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Uncertain, result.Status);
+        Assert.Equal(1, f.SendButton.InvokeCount);
+        Assert.Contains("повторно", result.Message);
+    }
+
     private static MessageRequest Request(string raw)
     {
         var recipient = RecipientParser.Parse(MessengerApp.TelegramDesktop, raw).Recipient!;

@@ -97,6 +97,32 @@ public sealed class WhatsAppDesktopAdapterTests
         Assert.Equal(1, fixture.SendButton.InvokeCount);
     }
 
+    [Fact]
+    public async Task Changed_interface_without_send_button_is_not_sent_and_draft_is_cleared()
+    {
+        var fixture = CreateFixture();
+        fixture.SendButton.Name = "Что-то другое";
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(SendStatus.NotSent, result.Status);
+        Assert.Equal(0, fixture.SendButton.InvokeCount);
+        Assert.Equal(string.Empty, fixture.Composer.Value);
+    }
+
+    [Fact]
+    public async Task Click_without_cleared_field_is_uncertain_and_clicked_only_once()
+    {
+        var fixture = CreateFixture();   // кнопка нажимается, но поле не очищается
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Uncertain, result.Status);
+        Assert.Equal(1, fixture.SendButton.InvokeCount);
+    }
+
     private static WhatsAppDesktopAdapter CreateAdapter(Fixture fixture) =>
         new(fixture.Windows, fixture.Launcher, TimeProvider.System);
 
