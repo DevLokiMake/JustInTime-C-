@@ -30,9 +30,14 @@ public partial class App : Application
     /// <summary>Ключ запуска: сохранить снимок дерева элементов окна и выйти. Пример: JustInTime.exe --dump-ui WhatsApp</summary>
     public const string DumpUiArgument = "--dump-ui";
 
+    /// <summary>Ключ запуска (его пишет автозапуск): сразу в трей, без окна.</summary>
+    public const string BackgroundArgument = RegistryAutostartService.BackgroundArgument;
+
     private IHost? _host;
     private SchedulerLoop? _loop;
     private bool _headless;
+    private SingleInstanceGuard? _singleInstance;
+    private AppLifecycle? _lifecycle;
 
     public App()
     {
@@ -52,6 +57,13 @@ public partial class App : Application
         }
 
         _headless = e.Args.Contains(RunDueArgument, StringComparer.OrdinalIgnoreCase);
+
+        if (!_headless && !AcquireSingleInstance())
+        {
+            // Приложение уже запущено (возможно, скрыто в трее): показываем его окно и выходим.
+            Shutdown(0);
+            return;
+        }
 
         if (_headless)
         {
@@ -83,9 +95,12 @@ public partial class App : Application
                 _loop.Start();
             }
 
-            var window = _host.Services.GetRequiredService<MainWindow>();
-            MainWindow = window;
-            window.Show();
+            _lifecycle = (AppLifecycle)_host.Services.GetRequiredService<IAppLifecycle>();
+            _singleInstance?.StartListening(_lifecycle.ShowMainWindow);
+
+            await _lifecycle.StartAsync(
+                startHidden: e.Args.Contains(BackgroundArgument, StringComparer.OrdinalIgnoreCase),
+                databaseReady: databaseReady);
         }
         catch (Exception ex)
         {
@@ -106,8 +121,32 @@ public partial class App : Application
         }
     }
 
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        // Выключение или выход из Windows: окно не должно прятаться в трей и задерживать завершение.
+        _lifecycle?.MarkExiting();
+        base.OnSessionEnding(e);
+    }
+
+    private bool AcquireSingleInstance()
+    {
+        _singleInstance = new SingleInstanceGuard();
+
+        if (_singleInstance.TryAcquire())
+        {
+            return true;
+        }
+
+        _singleInstance.SignalExisting();
+        _singleInstance.Dispose();
+        _singleInstance = null;
+        return false;
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        _lifecycle?.Dispose();
+
         // Сначала останавливаем цикл: он может быть посреди действия, и его результат ещё нужно сохранить.
         _loop?.StopAsync().GetAwaiter().GetResult();
 
@@ -116,6 +155,8 @@ public partial class App : Application
             _host.StopAsync().GetAwaiter().GetResult();
             _host.Dispose();
         }
+
+        _singleInstance?.Dispose();
 
         Log.Information("JustInTime остановлен");
         Log.CloseAndFlush();
@@ -195,6 +236,10 @@ public partial class App : Application
                 services.AddSingleton<IUserSettingsService, UserSettingsService>();
                 services.AddSingleton<SchedulerLoop>();
 
+                services.AddSingleton<IAutostartService>(_ => new RegistryAutostartService(
+                    Environment.ProcessPath
+                        ?? throw new InvalidOperationException("Не удалось определить путь к исполняемому файлу приложения.")));
+                services.AddSingleton<IAppLifecycle, AppLifecycle>();
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<MainViewModel>();

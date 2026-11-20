@@ -5,4 +5,5 @@ public sealed record UserSettings(
     bool AutomationEnabled,
     bool NotificationsEnabled,
     bool NotifyOnSuccess,
-    int MissedGraceMinutes);
+    int MissedGraceMinutes,
+    bool MinimizeToTray = true);

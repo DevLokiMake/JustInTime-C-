@@ -70,6 +70,27 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Трей и автозапуск -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Запуск и трей" Style="{StaticResource H2}" />
+                        <CheckBox Content="Закрытие окна сворачивает приложение в трей"
+                                  IsChecked="{Binding MinimizeToTray, Mode=TwoWay}"
+                                  Margin="0,12,0,0" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Приложение продолжает работать скрытым, значок остаётся рядом с часами. Выйти полностью: правый клик по значку, «Выход». Если выключить, закрытие окна завершит приложение, и задачи выполнит только Планировщик Windows." />
+
+                        <CheckBox Content="Запускать JustInTime при входе в Windows"
+                                  IsChecked="{Binding AutostartEnabled, Mode=TwoWay}"
+                                  Margin="0,16,0,0" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Приложение стартует сразу в трей, без окна. Запись добавляется только для вашей учётной записи Windows, права администратора не нужны." />
+                        <TextBlock Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="{Binding AutostartNote}"
+                                   Visibility="{Binding HasAutostartNote, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </Border>
+
                 <Button Content="Сохранить"
                         Command="{Binding SaveCommand}"
                         Style="{StaticResource PrimaryButton}"

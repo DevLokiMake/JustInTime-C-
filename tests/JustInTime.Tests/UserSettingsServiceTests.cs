@@ -33,6 +33,19 @@ public sealed class UserSettingsServiceTests
     }
 
     [Fact]
+    public async Task Minimize_to_tray_is_on_by_default_and_can_be_turned_off()
+    {
+        var service = CreateService();
+
+        Assert.True((await service.LoadAsync()).MinimizeToTray);
+
+        await service.SaveAsync(new UserSettings(true, true, false, 30, MinimizeToTray: false));
+
+        Assert.False((await service.LoadAsync()).MinimizeToTray);
+        Assert.Equal("false", _store.Values[SettingKeys.MinimizeToTray]);
+    }
+
+    [Fact]
     public async Task Settings_use_the_same_keys_as_the_scheduler_engine()
     {
         await CreateService().SaveAsync(new UserSettings(false, true, false, 45));

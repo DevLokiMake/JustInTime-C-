@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JustInTime.App.Services;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,8 @@ namespace JustInTime.App.ViewModels;
 
 public sealed partial class SettingsViewModel(
     IUserSettingsService settings,
+    IAutostartService autostart,
+    IAppLifecycle lifecycle,
     ILogger<SettingsViewModel> logger) : ObservableObject, IInitializableViewModel
 {
     [ObservableProperty]
@@ -19,6 +22,16 @@ public sealed partial class SettingsViewModel(
 
     [ObservableProperty]
     private bool _notifyOnSuccess;
+
+    [ObservableProperty]
+    private bool _minimizeToTray = true;
+
+    [ObservableProperty]
+    private bool _autostartEnabled;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAutostartNote))]
+    private string? _autostartNote;
 
     [ObservableProperty]
     private string _graceMinutesText = string.Empty;
@@ -35,6 +48,8 @@ public sealed partial class SettingsViewModel(
 
     public bool HasMessage => !string.IsNullOrEmpty(Message);
 
+    public bool HasAutostartNote => !string.IsNullOrEmpty(AutostartNote);
+
     public async Task InitializeAsync()
     {
         try
@@ -44,6 +59,8 @@ public sealed partial class SettingsViewModel(
             AutomationEnabled = loaded.AutomationEnabled;
             NotificationsEnabled = loaded.NotificationsEnabled;
             NotifyOnSuccess = loaded.NotifyOnSuccess;
+            MinimizeToTray = loaded.MinimizeToTray;
+            LoadAutostart();
             GraceMinutesText = loaded.MissedGraceMinutes.ToString(CultureInfo.InvariantCulture);
             IsLoaded = true;
             Show(null, false);
@@ -68,14 +85,57 @@ public sealed partial class SettingsViewModel(
         try
         {
             var result = await settings.SaveAsync(
-                new UserSettings(AutomationEnabled, NotificationsEnabled, NotifyOnSuccess, grace));
+                new UserSettings(AutomationEnabled, NotificationsEnabled, NotifyOnSuccess, grace, MinimizeToTray));
 
-            Show(result.Succeeded ? "Настройки сохранены." : result.ErrorText, !result.Succeeded);
+            if (!result.Succeeded)
+            {
+                Show(result.ErrorText, true);
+                return;
+            }
+
+            lifecycle.MinimizeToTray = MinimizeToTray;
+
+            var autostartError = ApplyAutostart();
+            Show(autostartError ?? "Настройки сохранены.", autostartError is not null);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Не удалось сохранить настройки");
             Show($"Не удалось сохранить настройки: {ex.Message}", true);
+        }
+    }
+
+    private void LoadAutostart()
+    {
+        var status = autostart.GetStatus();
+        AutostartEnabled = status == AutostartStatus.On;
+        AutostartNote = status == AutostartStatus.DisabledInWindows
+            ? "Автозапуск отключён в Параметрах Windows (Приложения, Автозагрузка). Если включить его здесь и сохранить, запись снова станет активной."
+            : null;
+    }
+
+    /// <summary>Автозапуск хранится в реестре Windows, а не в базе. Возвращает текст ошибки или null.</summary>
+    private string? ApplyAutostart()
+    {
+        var current = autostart.GetStatus();
+        var wanted = AutostartEnabled;
+
+        if (wanted == (current == AutostartStatus.On))
+        {
+            return null;
+        }
+
+        try
+        {
+            autostart.SetEnabled(wanted);
+            LoadAutostart();
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogError(ex, "Не удалось изменить автозапуск");
+            LoadAutostart();
+            return $"Остальные настройки сохранены, но автозапуск не изменён: {ex.Message}";
         }
     }
 

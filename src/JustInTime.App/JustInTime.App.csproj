@@ -4,10 +4,18 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Нужен только ради значка в области уведомлений (NotifyIcon). Остальной интерфейс на WPF. -->
+    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>JustInTime.App</RootNamespace>
     <AssemblyName>JustInTime</AssemblyName>
     <UserSecretsId>justintime-8f3a2c1e-4b7d-4e6a-9c55-2a1d0f7b9e31</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Без этого неявные using WinForms делают имена Application, MessageBox, Button и другие неоднозначными в WPF-коде. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

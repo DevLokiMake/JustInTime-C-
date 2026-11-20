@@ -15,7 +15,8 @@ public sealed class UserSettingsService(ISettingsStore store) : IUserSettingsSer
             await store.GetBoolAsync(SettingKeys.NotificationsEnabled, true, cancellationToken),
             await store.GetBoolAsync(SettingKeys.NotifyOnSuccess, false, cancellationToken),
             // Так же, как в движке: испорченное значение в БД не должно показывать пользователю абсурд.
-            Math.Clamp(grace, SchedulerEngineOptions.MinMissedGraceMinutes, SchedulerEngineOptions.MaxMissedGraceMinutes));
+            Math.Clamp(grace, SchedulerEngineOptions.MinMissedGraceMinutes, SchedulerEngineOptions.MaxMissedGraceMinutes),
+            await store.GetBoolAsync(SettingKeys.MinimizeToTray, true, cancellationToken));
     }
 
     public async Task<ServiceResult> SaveAsync(UserSettings settings, CancellationToken cancellationToken = default)
@@ -34,6 +35,7 @@ public sealed class UserSettingsService(ISettingsStore store) : IUserSettingsSer
         await store.SetBoolAsync(SettingKeys.NotificationsEnabled, settings.NotificationsEnabled, cancellationToken);
         await store.SetBoolAsync(SettingKeys.NotifyOnSuccess, settings.NotifyOnSuccess, cancellationToken);
         await store.SetIntAsync(SettingKeys.MissedGraceMinutes, settings.MissedGraceMinutes, cancellationToken);
+        await store.SetBoolAsync(SettingKeys.MinimizeToTray, settings.MinimizeToTray, cancellationToken);
 
         return ServiceResult.Ok();
     }

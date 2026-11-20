@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="JustInTime.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\JustInTime.Core\JustInTime.Core.csproj" />
   </ItemGroup>
 
