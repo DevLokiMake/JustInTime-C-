@@ -35,6 +35,12 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
             return ExecutionOutcome.Failed("Текст сообщения пустой.");
         }
 
+        if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
+        {
+            return ExecutionOutcome.Failed(
+                "Многострочные сообщения пока не поддерживаются (Enter отправил бы сообщение раньше времени). Сообщение не отправлено, уберите переносы строк.");
+        }
+
         if (!_adapters.TryGetValue(payload.App, out var adapter))
         {
             return ExecutionOutcome.Failed(

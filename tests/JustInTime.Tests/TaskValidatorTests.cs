@@ -97,4 +97,18 @@ public sealed class TaskValidatorTests
         Assert.Empty(TaskValidator.Validate("t", new SystemSettingPayload(SystemSettingKind.WiFi, true)));
         Assert.Single(TaskValidator.Validate("t", new SystemSettingPayload((SystemSettingKind)77, true)));
     }
+
+    [Theory]
+    [InlineData("Первая\nвторая")]
+    [InlineData("Первая\r\nвторая")]
+    public void Multiline_message_is_rejected(string text)
+    {
+        Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "@anna_test", text)));
+    }
+
+    [Fact]
+    public void Trailing_line_break_is_trimmed_and_allowed()
+    {
+        Assert.Empty(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "@anna_test", "Привет\n")));
+    }
 }

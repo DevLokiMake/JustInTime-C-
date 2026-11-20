@@ -89,6 +89,10 @@ public static class TaskValidator
         {
             errors.Add("Введите текст сообщения.");
         }
+        else if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
+        {
+            errors.Add("Пока поддерживается сообщение в одну строку: Enter в мессенджере отправил бы его раньше времени. Уберите переносы строк.");
+        }
         else if (payload.Text.Length > MaxTextLength)
         {
             errors.Add($"Сообщение не должно быть длиннее {MaxTextLength} символов.");

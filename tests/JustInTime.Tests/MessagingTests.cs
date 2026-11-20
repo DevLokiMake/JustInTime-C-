@@ -186,6 +186,18 @@ public sealed class MessagingTests
     }
 
     [Fact]
+    public async Task Multiline_text_fails_without_calling_adapter()
+    {
+        var adapter = new FakeAdapter(MessengerApp.WhatsApp);
+
+        var outcome = await Run(adapter, Message(text: "Первая\nвторая"));
+
+        Assert.Equal(OutcomeKind.Failed, outcome.Kind);
+        Assert.Contains("Многострочные", outcome.Message);
+        Assert.Equal(0, adapter.Calls);
+    }
+
+    [Fact]
     public async Task Missing_adapter_fails_honestly()
     {
         var executor = new MessageSendExecutor([new FakeAdapter(MessengerApp.Telegram)], new FakeNetwork());
