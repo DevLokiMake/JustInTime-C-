@@ -43,6 +43,19 @@ public sealed class ImageInputService : IImageInputService
         }
     }
 
+    public string? CopyText(string text)
+    {
+        try
+        {
+            Clipboard.SetText(text);
+            return null;
+        }
+        catch (System.Runtime.InteropServices.ExternalException ex)
+        {
+            return $"Буфер обмена сейчас недоступен: {ex.Message}";
+        }
+    }
+
     public ImageInputResult FromClipboard()
     {
         try

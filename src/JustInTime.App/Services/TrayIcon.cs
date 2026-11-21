@@ -10,13 +10,14 @@ public sealed class TrayIcon : IDisposable
     private readonly Forms.NotifyIcon _icon;
     private readonly Drawing.Icon _image;
 
-    public TrayIcon(Action open, Action createTask, Action exit)
+    public TrayIcon(Action open, Action createTask, Action imageToText, Action exit)
     {
         _image = DrawIcon();
 
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Открыть JustInTime", null, (_, _) => open());
         menu.Items.Add("Новая задача", null, (_, _) => createTask());
+        menu.Items.Add("Фото в текст", null, (_, _) => imageToText());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Выход", null, (_, _) => exit());
 

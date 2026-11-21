@@ -18,7 +18,13 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
     // Порядок предпочтения: русский, затем английский, затем языки профиля пользователя.
     private static readonly string[] PreferredLanguages = ["ru", "en"];
 
-    public async Task<TextRecognitionResult> RecognizeAsync(byte[] image, CancellationToken cancellationToken = default)
+    public IReadOnlyList<RecognizerLanguage> AvailableLanguages =>
+        OcrEngine.AvailableRecognizerLanguages
+            .Select(l => new RecognizerLanguage(l.LanguageTag, l.DisplayName))
+            .ToList();
+
+    public async Task<TextRecognitionResult> RecognizeAsync(
+        byte[] image, string? languageTag = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(image);
 
@@ -29,7 +35,12 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
 
         try
         {
-            var engine = CreateEngine();
+            var engine = languageTag is null ? CreateEngine() : CreateEngineFor(languageTag);
+
+            if (engine is null && languageTag is not null)
+            {
+                return TextRecognitionResult.Fail($"Язык «{languageTag}» для распознавания в Windows не установлен.");
+            }
 
             if (engine is null)
             {
@@ -41,11 +52,11 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
             using var bitmap = await DecodeAsync(image, cancellationToken);
             var result = await engine.RecognizeAsync(bitmap).AsTask(cancellationToken);
 
-            var text = OcrTextNormalizer.ToSingleLine(result.Lines.Select(l => l.Text));
+            var recognized = TextRecognitionResult.Ok(result.Lines.Select(l => l.Text), engine.RecognizerLanguage.DisplayName);
 
-            return text.Length == 0
+            return recognized.Text.Length == 0
                 ? TextRecognitionResult.Fail("Текст на изображении не найден. Попробуйте более чёткий снимок или крупнее.")
-                : TextRecognitionResult.Ok(text, engine.RecognizerLanguage.DisplayName);
+                : recognized;
         }
         catch (OperationCanceledException)
         {
@@ -55,6 +66,14 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
         {
             return TextRecognitionResult.Fail($"Не удалось распознать изображение: {ex.Message}");
         }
+    }
+
+    private static OcrEngine? CreateEngineFor(string languageTag)
+    {
+        var language = OcrEngine.AvailableRecognizerLanguages.FirstOrDefault(
+            l => l.LanguageTag.Equals(languageTag, StringComparison.OrdinalIgnoreCase));
+
+        return language is null ? null : OcrEngine.TryCreateFromLanguage(language);
     }
 
     private static OcrEngine? CreateEngine()

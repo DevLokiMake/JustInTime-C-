@@ -1,0 +1,123 @@
+<Window x:Class="JustInTime.App.Views.ImageToTextWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="JustInTime: фото в текст"
+        Width="980"
+        Height="620"
+        MinWidth="760"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        AllowDrop="True"
+        PreviewDragOver="OnPreviewDragOver"
+        PreviewDrop="OnPreviewDrop"
+        PreviewKeyDown="OnPreviewKeyDown">
+
+    <Grid Margin="24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Картинка -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Фото в текст" Style="{StaticResource H1}" />
+
+            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,12,0,12">
+                <Grid>
+                    <Image Source="{Binding Preview}" Stretch="Uniform" />
+                    <TextBlock Style="{StaticResource Muted}"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               MaxWidth="300"
+                               Text="Перетащите сюда фото или скриншот, нажмите Ctrl+V или выберите файл"
+                               Visibility="{Binding NoPreview, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </Border>
+
+            <WrapPanel Grid.Row="2">
+                <Button Content="Открыть файл…"
+                        Command="{Binding PickFileCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="Из буфера обмена"
+                        Command="{Binding PasteImageCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="Очистить"
+                        Command="{Binding ClearCommand}"
+                        Style="{StaticResource SecondaryButton}" />
+            </WrapPanel>
+        </Grid>
+
+        <!-- Текст -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <TextBlock Text="Язык распознавания" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                <ComboBox ItemsSource="{Binding Languages}"
+                          SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+                          DisplayMemberPath="Title"
+                          HorizontalAlignment="Left"
+                          MinWidth="240" />
+                <TextBlock Text="Распознанный текст (можно править)" Style="{StaticResource FieldLabel}" />
+            </StackPanel>
+
+            <TextBox Grid.Row="1"
+                     Text="{Binding ResultText, UpdateSourceTrigger=PropertyChanged}"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Margin="0,0,0,12" />
+
+            <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                <Button Content="Копировать"
+                        Command="{Binding CopyCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="Копировать одной строкой"
+                        Command="{Binding CopyOneLineCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="Вставить в сообщение"
+                        Command="{Binding InsertCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Visibility="{Binding CanInsert, Converter={StaticResource BoolToVis}}" />
+            </WrapPanel>
+
+            <TextBlock Grid.Row="3"
+                       TextWrapping="Wrap"
+                       Text="{Binding Status}"
+                       Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+    </Grid>
+</Window>

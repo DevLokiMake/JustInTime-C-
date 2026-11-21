@@ -1,3 +1,4 @@
+using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 
 namespace JustInTime.Tests;
@@ -42,5 +43,27 @@ public sealed class ImageTextTests
     public void Unsuitable_files_are_rejected_with_a_reason(string path, long length)
     {
         Assert.False(string.IsNullOrEmpty(ImageFileRules.Validate(path, length)));
+    }
+
+    [Fact]
+    public void Result_keeps_lines_and_also_gives_one_line_text()
+    {
+        var result = TextRecognitionResult.Ok(["  Привет  ", "", "как дела?"], "Русский");
+
+        Assert.True(result.Success);
+        Assert.Equal(2, result.Lines.Count);
+        Assert.Equal("Привет", result.Lines[0]);
+        Assert.Equal("Привет как дела?", result.Text);
+        Assert.Equal("Русский", result.Language);
+    }
+
+    [Fact]
+    public void Failed_result_has_no_text_and_carries_the_reason()
+    {
+        var result = TextRecognitionResult.Fail("нет языка");
+
+        Assert.False(result.Success);
+        Assert.Empty(result.Lines);
+        Assert.Equal("нет языка", result.Error);
     }
 }

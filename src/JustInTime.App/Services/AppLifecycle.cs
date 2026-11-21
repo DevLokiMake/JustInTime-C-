@@ -35,7 +35,7 @@ public sealed class AppLifecycle(IServiceProvider services, ILogger<AppLifecycle
 
         try
         {
-            _tray = new TrayIcon(ShowMainWindow, ShowCreateTask, ExitApplication);
+            _tray = new TrayIcon(ShowMainWindow, ShowCreateTask, ShowImageToText, ExitApplication);
         }
         catch (Exception ex)
         {
@@ -87,6 +87,9 @@ public sealed class AppLifecycle(IServiceProvider services, ILogger<AppLifecycle
         Application.Current.Dispatcher.Invoke(() => services.GetRequiredService<INavigationService>().Navigate(NavSection.CreateTask));
     }
 
+    private void ShowImageToText() =>
+        Application.Current.Dispatcher.Invoke(() => services.GetRequiredService<IOcrWindowService>().Show());
+
     public void ExitApplication()
     {
         Application.Current.Dispatcher.Invoke(() =>
@@ -121,7 +124,8 @@ public sealed class AppLifecycle(IServiceProvider services, ILogger<AppLifecycle
             return;
         }
 
-        // Окно закрывается по-настоящему. Это последнее окно, поэтому WPF сам завершит приложение (ShutdownMode по умолчанию).
+        // Окно закрывается по-настоящему: завершаем приложение. Shutdown откладываем, нельзя вызывать его посреди закрытия окна.
         MarkExiting();
+        Application.Current.Dispatcher.BeginInvoke(() => Application.Current.Shutdown());
     }
 }

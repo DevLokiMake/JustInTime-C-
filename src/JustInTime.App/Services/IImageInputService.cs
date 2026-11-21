@@ -16,4 +16,7 @@ public interface IImageInputService
     ImageInputResult ReadFile(string path);
 
     ImageInputResult FromClipboard();
+
+    /// <summary>Кладёт текст в буфер обмена. Возвращает текст ошибки или null.</summary>
+    string? CopyText(string text);
 }

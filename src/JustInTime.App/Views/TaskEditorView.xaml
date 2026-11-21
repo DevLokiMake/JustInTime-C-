@@ -72,35 +72,13 @@
                                      TextWrapping="Wrap"
                                      MinHeight="96"
                                      MaxLength="4000"
-                                     VerticalScrollBarVisibility="Auto"
-                                     AllowDrop="True"
-                                     PreviewDragOver="OnMessageDragOver"
-                                     PreviewDrop="OnMessageDrop" />
+                                     VerticalScrollBarVisibility="Auto" />
 
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Content="Текст с фото…"
-                                        Command="{Binding PickImageCommand}"
-                                        Style="{StaticResource SmallButton}" />
-                                <Button Content="Из буфера обмена"
-                                        Command="{Binding PasteImageCommand}"
-                                        Style="{StaticResource SmallButton}" />
-                            </StackPanel>
-                            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                       Text="Выберите фото или скриншот, вставьте скриншот из буфера (Win+Shift+S) или перетащите файл в поле текста. Распознавание идёт на этом компьютере, картинка нигде не сохраняется и не отправляется." />
-                            <TextBlock TextWrapping="Wrap" Margin="0,6,0,0"
-                                       Text="{Binding RecognitionNote}"
-                                       Visibility="{Binding HasRecognitionNote, Converter={StaticResource BoolToVis}}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding RecognitionIsError}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                            <Button Content="Текст с фото…"
+                                    Command="{Binding OpenImageToTextCommand}"
+                                    Style="{StaticResource SmallButton}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8,0,0" />
                         </StackPanel>
 
                         <!-- Системная настройка -->

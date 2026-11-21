@@ -58,6 +58,12 @@ public partial class App : Application
 
         _headless = e.Args.Contains(RunDueArgument, StringComparer.OrdinalIgnoreCase);
 
+        if (!_headless)
+        {
+            // Приложение может жить без главного окна (в трее) или с одним окном «Фото в текст»: закрытие окон его не завершает.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        }
+
         if (!_headless && !AcquireSingleInstance())
         {
             // Приложение уже запущено (возможно, скрыто в трее): показываем его окно и выходим.
@@ -242,6 +248,7 @@ public partial class App : Application
                 services.AddSingleton<IAppLifecycle, AppLifecycle>();
                 services.AddSingleton<ITextRecognizer, WindowsTextRecognizer>();
                 services.AddSingleton<IImageInputService, ImageInputService>();
+                services.AddSingleton<IOcrWindowService, OcrWindowService>();
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<MainViewModel>();
@@ -251,6 +258,7 @@ public partial class App : Application
                 services.AddTransient<TaskEditorViewModel>();
                 services.AddTransient<HistoryViewModel>();
                 services.AddTransient<SettingsViewModel>();
+                services.AddTransient<ImageToTextViewModel>();
                 services.AddTransient<AutomationViewModel>();
                 services.AddSingleton<MainWindow>();
             })
