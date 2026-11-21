@@ -1,6 +1,7 @@
 <UserControl x:Class="JustInTime.App.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:JustInTime.App.Localization">
 
     <UserControl.Triggers>
         <EventTrigger RoutedEvent="Loaded">
@@ -16,8 +17,8 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="32,28,32,16" MaxWidth="640" HorizontalAlignment="Left">
 
-            <TextBlock Text="Settings" Style="{StaticResource H1}" />
-            <TextBlock Text="Настройки приложения. Хранятся локально, в вашей базе PostgreSQL."
+            <TextBlock Text="{loc:T page_settings}" Style="{StaticResource H1}" />
+            <TextBlock Text="{loc:T set_subtitle}"
                        Style="{StaticResource Muted}" Margin="0,2,0,16" TextWrapping="Wrap" />
 
             <Border Style="{StaticResource Banner}"
@@ -38,60 +39,74 @@
 
             <StackPanel IsEnabled="{Binding IsLoaded}">
 
+                <!-- Язык -->
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{loc:T set_language_title}" Style="{StaticResource H2}" />
+                        <ListBox Style="{StaticResource ChipList}"
+                                 ItemsSource="{Binding LanguageOptions}"
+                                 SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+                                 DisplayMemberPath="Title"
+                                 Margin="0,12,0,0" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="{loc:T set_language_hint}" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Автоматизация -->
                 <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="Автоматизация" Style="{StaticResource H2}" />
-                        <CheckBox Content="Выполнять запланированные задачи"
+                        <TextBlock Text="{loc:T set_auto_title}" Style="{StaticResource H2}" />
+                        <CheckBox Content="{loc:T set_auto_enabled}"
                                   IsChecked="{Binding AutomationEnabled, Mode=TwoWay}"
                                   Margin="0,12,0,0" />
                         <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Если выключить, ни одна задача не выполнится (ни из окна, ни из Планировщика Windows). Задачи останутся в списке и выполнятся после включения, если не опоздают." />
+                                   Text="{loc:T set_auto_hint}" />
 
-                        <TextBlock Text="Допустимое опоздание, минут" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+                        <TextBlock Text="{loc:T set_grace_label}" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
                         <TextBox Text="{Binding GraceMinutesText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
                         <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Если компьютер был выключен в нужное время, задача выполнится при включении, но только если опоздание не больше этого значения. Иначе она будет помечена как пропущенная. От 1 до 1440." />
+                                   Text="{loc:T set_grace_hint}" />
                     </StackPanel>
                 </Border>
 
                 <!-- Уведомления -->
                 <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="Уведомления" Style="{StaticResource H2}" />
-                        <CheckBox Content="Показывать уведомления Windows"
+                        <TextBlock Text="{loc:T set_notify_title}" Style="{StaticResource H2}" />
+                        <CheckBox Content="{loc:T set_notify_enabled}"
                                   IsChecked="{Binding NotificationsEnabled, Mode=TwoWay}"
                                   Margin="0,12,0,0" />
-                        <CheckBox Content="Уведомлять и об успешных задачах"
+                        <CheckBox Content="{loc:T set_notify_success}"
                                   IsChecked="{Binding NotifyOnSuccess, Mode=TwoWay}"
                                   Margin="0,8,0,0" />
                         <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="По умолчанию приложение сообщает только о проблемах: ошибка, пропуск, неизвестный результат." />
+                                   Text="{loc:T set_notify_hint}" />
                     </StackPanel>
                 </Border>
 
                 <!-- Трей и автозапуск -->
                 <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="Запуск и трей" Style="{StaticResource H2}" />
-                        <CheckBox Content="Закрытие окна сворачивает приложение в трей"
+                        <TextBlock Text="{loc:T set_tray_title}" Style="{StaticResource H2}" />
+                        <CheckBox Content="{loc:T set_tray_enabled}"
                                   IsChecked="{Binding MinimizeToTray, Mode=TwoWay}"
                                   Margin="0,12,0,0" />
                         <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Приложение продолжает работать скрытым, значок остаётся рядом с часами. Выйти полностью: правый клик по значку, «Выход». Если выключить, закрытие окна завершит приложение, и задачи выполнит только Планировщик Windows." />
+                                   Text="{loc:T set_tray_hint}" />
 
-                        <CheckBox Content="Запускать JustInTime при входе в Windows"
+                        <CheckBox Content="{loc:T set_autostart}"
                                   IsChecked="{Binding AutostartEnabled, Mode=TwoWay}"
                                   Margin="0,16,0,0" />
                         <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Приложение стартует сразу в трей, без окна. Запись добавляется только для вашей учётной записи Windows, права администратора не нужны." />
+                                   Text="{loc:T set_autostart_hint}" />
                         <TextBlock Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
                                    Text="{Binding AutostartNote}"
                                    Visibility="{Binding HasAutostartNote, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
                 </Border>
 
-                <Button Content="Сохранить"
+                <Button Content="{loc:T common_save}"
                         Command="{Binding SaveCommand}"
                         Style="{StaticResource PrimaryButton}"
                         HorizontalAlignment="Left" />

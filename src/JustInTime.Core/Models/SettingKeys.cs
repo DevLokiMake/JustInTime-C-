@@ -18,6 +18,9 @@ public static class SettingKeys
     /// <summary>Уведомлять ли об успешных задачах. По умолчанию нет: тихо, пока всё хорошо.</summary>
     public const string NotifyOnSuccess = "Notifications.OnSuccess";
 
+    /// <summary>Язык интерфейса: ru или en. По умолчанию ru.</summary>
+    public const string Language = "Ui.Language";
+
     /// <summary>Закрытие окна сворачивает приложение в трей, а не завершает его. По умолчанию да.</summary>
     public const string MinimizeToTray = "Window.MinimizeToTray";
 }

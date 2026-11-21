@@ -1,3 +1,4 @@
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 
@@ -54,6 +55,10 @@ public sealed class MessageItemViewModel
     public string? RepeatText { get; }
 
     public bool IsRepeating => RepeatText is not null;
+
+    public string WhenLine => Loc.T("label_when", WhenText);
+
+    public string RepeatLine => RepeatText is null ? string.Empty : Loc.T("label_repeat", RepeatText);
 
     public bool IsProblem { get; }
 

@@ -1,4 +1,5 @@
 using JustInTime.Core.Interfaces;
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 
 namespace JustInTime.Core.Services;
@@ -16,7 +17,8 @@ public sealed class UserSettingsService(ISettingsStore store) : IUserSettingsSer
             await store.GetBoolAsync(SettingKeys.NotifyOnSuccess, false, cancellationToken),
             // Так же, как в движке: испорченное значение в БД не должно показывать пользователю абсурд.
             Math.Clamp(grace, SchedulerEngineOptions.MinMissedGraceMinutes, SchedulerEngineOptions.MaxMissedGraceMinutes),
-            await store.GetBoolAsync(SettingKeys.MinimizeToTray, true, cancellationToken));
+            await store.GetBoolAsync(SettingKeys.MinimizeToTray, true, cancellationToken),
+            AppLanguageExtensions.FromCode(await store.GetAsync(SettingKeys.Language, cancellationToken)));
     }
 
     public async Task<ServiceResult> SaveAsync(UserSettings settings, CancellationToken cancellationToken = default)
@@ -36,6 +38,7 @@ public sealed class UserSettingsService(ISettingsStore store) : IUserSettingsSer
         await store.SetBoolAsync(SettingKeys.NotifyOnSuccess, settings.NotifyOnSuccess, cancellationToken);
         await store.SetIntAsync(SettingKeys.MissedGraceMinutes, settings.MissedGraceMinutes, cancellationToken);
         await store.SetBoolAsync(SettingKeys.MinimizeToTray, settings.MinimizeToTray, cancellationToken);
+        await store.SetAsync(SettingKeys.Language, settings.Language.ToCode(), cancellationToken);
 
         return ServiceResult.Ok();
     }

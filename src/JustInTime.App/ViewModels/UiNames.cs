@@ -1,8 +1,9 @@
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 
 namespace JustInTime.App.ViewModels;
 
-/// <summary>Русские названия для перечислений и параметров действий.</summary>
+/// <summary>Названия для перечислений и параметров действий на текущем языке интерфейса.</summary>
 public static class UiNames
 {
     public static string Action(ActionType action) => action.ToDisplayName();
@@ -17,8 +18,8 @@ public static class UiNames
 
     public static string Setting(SystemSettingKind setting) => setting switch
     {
-        SystemSettingKind.AirplaneMode => "Авиарежим",
-        SystemSettingKind.MobileData => "Мобильный интернет",
+        SystemSettingKind.AirplaneMode => Loc.T("setting_airplane"),
+        SystemSettingKind.MobileData => Loc.T("setting_mobile_data"),
         SystemSettingKind.Bluetooth => "Bluetooth",
         SystemSettingKind.WiFi => "Wi-Fi",
         _ => setting.ToString()
@@ -27,10 +28,10 @@ public static class UiNames
     /// <summary>Одна строка с сутью действия для списка задач.</summary>
     public static string Summary(TaskPayload? payload) => payload switch
     {
-        SendMessagePayload m => $"{Messenger(m.App)}, получатель: {m.Recipient}",
-        SystemSettingPayload s => $"{Setting(s.Setting)}: {(s.Enable ? "включить" : "выключить")}",
+        SendMessagePayload m => Loc.T("summary_message", Messenger(m.App), m.Recipient),
+        SystemSettingPayload s => Loc.T("summary_setting", Setting(s.Setting), Loc.T(s.Enable ? "switch_on" : "switch_off")),
         LaunchProgramPayload l => l.ProgramPath,
         OpenUrlPayload u => u.Url,
-        _ => "Параметры задачи не удалось прочитать"
+        _ => Loc.T("summary_unreadable")
     };
 }

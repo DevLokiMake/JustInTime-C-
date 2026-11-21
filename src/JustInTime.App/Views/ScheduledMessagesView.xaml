@@ -1,6 +1,7 @@
 <UserControl x:Class="JustInTime.App.Views.ScheduledMessagesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:JustInTime.App.Localization">
 
     <UserControl.Triggers>
         <EventTrigger RoutedEvent="Loaded">
@@ -24,16 +25,16 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Scheduled Messages" Style="{StaticResource H1}" />
-                    <TextBlock Text="Запланированные сообщения в WhatsApp и Telegram" Style="{StaticResource Muted}" Margin="0,2,0,0" />
+                    <TextBlock Text="{loc:T page_messages}" Style="{StaticResource H1}" />
+                    <TextBlock Text="{loc:T msgs_subtitle}" Style="{StaticResource Muted}" Margin="0,2,0,0" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Обновить"
+                    <Button Content="{loc:T common_refresh}"
                             Command="{Binding RefreshCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Margin="0,0,8,0" />
-                    <Button Content="Новое сообщение"
+                    <Button Content="{loc:T msgs_new}"
                             Command="{Binding CreateMessageCommand}"
                             Style="{StaticResource PrimaryButton}" />
                 </StackPanel>
@@ -54,7 +55,7 @@
 
             <Border Style="{StaticResource Card}"
                     Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="Здесь пока нет сообщений. Нажмите «Новое сообщение»: действие «Отправить сообщение»."
+                <TextBlock Text="{loc:T msgs_empty}"
                            Style="{StaticResource Muted}"
                            TextWrapping="Wrap" />
             </Border>
@@ -96,16 +97,16 @@
 
                                 <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0">
                                     <Run Text="{Binding AppName, Mode=OneWay}" />
-                                    <Run Text=" · Получатель: " />
+                                    <Run Text="{loc:T msgs_recipient}" />
                                     <Run Text="{Binding Recipient, Mode=OneWay}" />
                                 </TextBlock>
                                 <TextBlock Text="{Binding TextPreview}"
                                            TextWrapping="Wrap"
                                            Margin="0,4,0,0" />
-                                <TextBlock Text="{Binding WhenText, StringFormat='Время: {0}'}"
+                                <TextBlock Text="{Binding WhenLine}"
                                            Style="{StaticResource Muted}"
                                            Margin="0,6,0,0" />
-                                <TextBlock Text="{Binding RepeatText, StringFormat='Повтор: {0}'}"
+                                <TextBlock Text="{Binding RepeatLine}"
                                            Style="{StaticResource Muted}"
                                            Margin="0,2,0,0"
                                            Visibility="{Binding IsRepeating, Converter={StaticResource BoolToVis}}" />
@@ -117,34 +118,34 @@
                                            Margin="0,8,0,0"
                                            Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
 
-                                <TextBlock Text="Результат неизвестен: откройте чат и проверьте, ушло ли сообщение. Автоматического повтора не будет, чтобы не отправить его дважды."
+                                <TextBlock Text="{loc:T msgs_unknown_hint}"
                                            Style="{StaticResource Muted}"
                                            TextWrapping="Wrap"
                                            Margin="0,8,0,0"
                                            Visibility="{Binding NeedsResolve, Converter={StaticResource BoolToVis}}" />
 
                                 <WrapPanel Margin="0,14,0,0">
-                                    <Button Content="Сообщение ушло"
+                                    <Button Content="{loc:T msgs_mark_sent}"
                                             Style="{StaticResource SmallButton}"
                                             Command="{Binding DataContext.MarkSentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             Visibility="{Binding NeedsResolve, Converter={StaticResource BoolToVis}}" />
-                                    <Button Content="Не ушло"
+                                    <Button Content="{loc:T msgs_mark_not_sent}"
                                             Style="{StaticResource SmallButton}"
                                             Command="{Binding DataContext.MarkNotSentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             Visibility="{Binding NeedsResolve, Converter={StaticResource BoolToVis}}" />
-                                    <Button Content="Изменить"
+                                    <Button Content="{loc:T common_edit}"
                                             Style="{StaticResource SmallButton}"
                                             Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             Visibility="{Binding CanEdit, Converter={StaticResource BoolToVis}}" />
-                                    <Button Content="Повторить"
+                                    <Button Content="{loc:T common_retry}"
                                             Style="{StaticResource SmallButton}"
                                             Command="{Binding DataContext.RetryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             Visibility="{Binding CanRetry, Converter={StaticResource BoolToVis}}" />
-                                    <Button Content="Отменить"
+                                    <Button Content="{loc:T common_cancel_task}"
                                             Style="{StaticResource SmallButton}"
                                             Command="{Binding DataContext.CancelMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"

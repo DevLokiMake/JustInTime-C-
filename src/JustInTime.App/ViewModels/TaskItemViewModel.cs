@@ -44,6 +44,8 @@ public sealed class TaskItemViewModel
 
     public bool IsRepeating => RepeatText is not null;
 
+    public string RepeatLine => RepeatText is null ? string.Empty : JustInTime.Core.Localization.Loc.T("label_repeat", RepeatText);
+
     public string? ErrorText { get; }
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);

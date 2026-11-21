@@ -1,6 +1,7 @@
 <UserControl x:Class="JustInTime.App.Views.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:JustInTime.App.Localization">
 
     <!-- Плавное появление страницы -->
     <UserControl.Triggers>
@@ -25,16 +26,16 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Dashboard" Style="{StaticResource H1}" />
-                    <TextBlock Text="Сводка по запланированным действиям" Style="{StaticResource Muted}" Margin="0,2,0,0" />
+                    <TextBlock Text="{loc:T page_dashboard}" Style="{StaticResource H1}" />
+                    <TextBlock Text="{loc:T dash_subtitle}" Style="{StaticResource Muted}" Margin="0,2,0,0" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Обновить"
+                    <Button Content="{loc:T common_refresh}"
                             Command="{Binding RefreshCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Margin="0,0,8,0" />
-                    <Button Content="Создать задачу"
+                    <Button Content="{loc:T common_create_task}"
                             Command="{Binding CreateTaskCommand}"
                             Style="{StaticResource PrimaryButton}" />
                 </StackPanel>
@@ -52,14 +53,14 @@
             <WrapPanel Orientation="Horizontal">
                 <Border Style="{StaticResource Card}" Width="260">
                     <StackPanel>
-                        <TextBlock Text="Активные задачи" Style="{StaticResource Muted}" />
+                        <TextBlock Text="{loc:T dash_active}" Style="{StaticResource Muted}" />
                         <TextBlock Text="{Binding ActiveTasks}" Style="{StaticResource CardValue}" Margin="0,8,0,0" />
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource Card}" Width="260">
                     <StackPanel>
-                        <TextBlock Text="Ближайшая задача" Style="{StaticResource Muted}" />
+                        <TextBlock Text="{loc:T dash_next}" Style="{StaticResource Muted}" />
                         <TextBlock Text="{Binding NextTaskTitle}"
                                    Style="{StaticResource H2}"
                                    TextTrimming="CharacterEllipsis"
@@ -70,7 +71,7 @@
 
                 <Border Style="{StaticResource Card}" Width="260">
                     <StackPanel>
-                        <TextBlock Text="Задачи с ошибкой" Style="{StaticResource Muted}" />
+                        <TextBlock Text="{loc:T dash_failed}" Style="{StaticResource Muted}" />
                         <TextBlock Text="{Binding FailedTasks}" Style="{StaticResource CardValue}" Margin="0,8,0,0" />
                     </StackPanel>
                 </Border>
@@ -85,9 +86,9 @@
 
                 <Border Grid.Column="0" Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Последние действия" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <TextBlock Text="{loc:T dash_recent}" Style="{StaticResource H2}" Margin="0,0,0,12" />
 
-                        <TextBlock Text="Пока ничего не выполнялось"
+                        <TextBlock Text="{loc:T dash_recent_empty}"
                                    Style="{StaticResource Muted}"
                                    Visibility="{Binding IsRecentEmpty, Converter={StaticResource BoolToVis}}" />
 
@@ -106,9 +107,9 @@
 
                 <Border Grid.Column="1" Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Последние ошибки" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <TextBlock Text="{loc:T dash_errors}" Style="{StaticResource H2}" Margin="0,0,0,12" />
 
-                        <TextBlock Text="Ошибок нет"
+                        <TextBlock Text="{loc:T dash_errors_empty}"
                                    Style="{StaticResource Muted}"
                                    Visibility="{Binding IsErrorsEmpty, Converter={StaticResource BoolToVis}}" />
 

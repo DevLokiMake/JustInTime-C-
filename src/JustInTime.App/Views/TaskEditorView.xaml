@@ -1,6 +1,7 @@
 <UserControl x:Class="JustInTime.App.Views.TaskEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:JustInTime.App.Localization">
 
     <UserControl.Triggers>
         <EventTrigger RoutedEvent="Loaded">
@@ -43,11 +44,11 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
 
-                        <TextBlock Text="Название" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                        <TextBlock Text="{loc:T edit_title}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
                         <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                                  MaxLength="200" />
 
-                        <TextBlock Text="Тип действия" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{loc:T edit_action_type}" Style="{StaticResource FieldLabel}" />
                         <ListBox Style="{StaticResource ChipList}"
                                  ItemsSource="{Binding ActionOptions}"
                                  SelectedItem="{Binding SelectedAction, Mode=TwoWay}"
@@ -56,17 +57,17 @@
 
                         <!-- Отправка сообщения -->
                         <StackPanel Visibility="{Binding IsMessageAction, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Мессенджер" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_messenger}" Style="{StaticResource FieldLabel}" />
                             <ListBox Style="{StaticResource ChipList}"
                                      ItemsSource="{Binding AppOptions}"
                                      SelectedItem="{Binding SelectedApp, Mode=TwoWay}"
                                      DisplayMemberPath="Title" />
 
-                            <TextBlock Text="WhatsApp: номер с плюсом (+77011234567); Telegram: номер с плюсом или @username" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_recipient}" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding Recipient, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="200" />
 
-                            <TextBlock Text="Текст сообщения" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_message_text}" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True"
                                      TextWrapping="Wrap"
@@ -74,7 +75,7 @@
                                      MaxLength="4000"
                                      VerticalScrollBarVisibility="Auto" />
 
-                            <Button Content="Текст с фото…"
+                            <Button Content="{loc:T edit_text_from_photo}"
                                     Command="{Binding OpenImageToTextCommand}"
                                     Style="{StaticResource SmallButton}"
                                     HorizontalAlignment="Left"
@@ -83,13 +84,13 @@
 
                         <!-- Системная настройка -->
                         <StackPanel Visibility="{Binding IsSystemAction, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Настройка" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_setting}" Style="{StaticResource FieldLabel}" />
                             <ListBox Style="{StaticResource ChipList}"
                                      ItemsSource="{Binding SettingOptions}"
                                      SelectedItem="{Binding SelectedSetting, Mode=TwoWay}"
                                      DisplayMemberPath="Title" />
 
-                            <TextBlock Text="Действие" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_setting_action}" Style="{StaticResource FieldLabel}" />
                             <ListBox Style="{StaticResource ChipList}"
                                      ItemsSource="{Binding SwitchOptions}"
                                      SelectedItem="{Binding SelectedSwitch, Mode=TwoWay}"
@@ -98,18 +99,18 @@
 
                         <!-- Запуск программы -->
                         <StackPanel Visibility="{Binding IsProgramAction, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Путь к программе" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_program_path}" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding ProgramPath, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="1000" />
 
-                            <TextBlock Text="Аргументы (необязательно)" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_program_args}" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding ProgramArguments, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="2000" />
                         </StackPanel>
 
                         <!-- Открытие ссылки -->
                         <StackPanel Visibility="{Binding IsUrlAction, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Ссылка" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Text="{loc:T edit_url}" Style="{StaticResource FieldLabel}" />
                             <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="2000" />
                         </StackPanel>
@@ -120,7 +121,7 @@
                 <!-- Время -->
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Когда выполнить" Style="{StaticResource H2}" />
+                        <TextBlock Text="{loc:T edit_when_title}" Style="{StaticResource H2}" />
 
                         <ListBox Style="{StaticResource ChipList}"
                                  Margin="0,14,0,0"
@@ -129,7 +130,7 @@
                                  DisplayMemberPath="Title" />
 
                         <StackPanel Visibility="{Binding IsDelayMode, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Через сколько минут" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
+                            <TextBlock Text="{loc:T edit_after_minutes}" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
                             <TextBox Text="{Binding DelayMinutesText, UpdateSourceTrigger=PropertyChanged}"
                                      Width="140"
                                      HorizontalAlignment="Left"
@@ -139,13 +140,13 @@
                         <StackPanel Visibility="{Binding IsAtTimeMode, Converter={StaticResource BoolToVis}}">
                             <WrapPanel Margin="0,6,0,0">
                                 <StackPanel Margin="0,0,16,0">
-                                    <TextBlock Text="Дата (дд.мм.гггг)" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                                    <TextBlock Text="{loc:T edit_date}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
                                     <TextBox Text="{Binding DateText, UpdateSourceTrigger=PropertyChanged}"
                                              Width="160"
                                              MaxLength="10" />
                                 </StackPanel>
                                 <StackPanel>
-                                    <TextBlock Text="Время (чч:мм)" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                                    <TextBlock Text="{loc:T edit_time}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
                                     <TextBox Text="{Binding TimeText, UpdateSourceTrigger=PropertyChanged}"
                                              Width="110"
                                              MaxLength="5" />
@@ -159,8 +160,8 @@
                 <!-- Повтор -->
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Повтор" Style="{StaticResource H2}" />
-                        <TextBlock Text="Первый запуск берётся из блока «Когда выполнить», время суток и число месяца повторяются."
+                        <TextBlock Text="{loc:T edit_repeat_title}" Style="{StaticResource H2}" />
+                        <TextBlock Text="{loc:T edit_repeat_hint}"
                                    Style="{StaticResource Muted}"
                                    TextWrapping="Wrap"
                                    Margin="0,6,0,0" />
@@ -180,7 +181,7 @@
                         </StackPanel>
 
                         <StackPanel Visibility="{Binding ShowWeekdays, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Дни недели" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
+                            <TextBlock Text="{loc:T edit_weekdays}" Style="{StaticResource FieldLabel}" Margin="0,6,0,6" />
                             <ItemsControl ItemsSource="{Binding Weekdays}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -199,7 +200,7 @@
                         </StackPanel>
 
                         <StackPanel Visibility="{Binding ShowDayOfMonth, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Число месяца (пусто: как в дате первого запуска; в коротких месяцах последний день)"
+                            <TextBlock Text="{loc:T edit_month_day}"
                                        Style="{StaticResource FieldLabel}"
                                        TextWrapping="Wrap"
                                        Margin="0,10,0,6" />
@@ -216,7 +217,7 @@
                             Command="{Binding SaveCommand}"
                             Style="{StaticResource PrimaryButton}"
                             Margin="0,0,8,0" />
-                    <Button Content="Отмена"
+                    <Button Content="{loc:T common_cancel}"
                             Command="{Binding CancelCommand}"
                             Style="{StaticResource SecondaryButton}" />
                 </StackPanel>

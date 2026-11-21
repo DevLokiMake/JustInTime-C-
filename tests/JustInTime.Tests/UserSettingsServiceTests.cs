@@ -1,3 +1,4 @@
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 
@@ -43,6 +44,27 @@ public sealed class UserSettingsServiceTests
 
         Assert.False((await service.LoadAsync()).MinimizeToTray);
         Assert.Equal("false", _store.Values[SettingKeys.MinimizeToTray]);
+    }
+
+    [Fact]
+    public async Task Language_is_russian_by_default_and_english_is_saved_and_loaded()
+    {
+        var service = CreateService();
+
+        Assert.Equal(AppLanguage.Ru, (await service.LoadAsync()).Language);
+
+        await service.SaveAsync(new UserSettings(true, true, false, 30, Language: AppLanguage.En));
+
+        Assert.Equal(AppLanguage.En, (await service.LoadAsync()).Language);
+        Assert.Equal("en", _store.Values[SettingKeys.Language]);
+    }
+
+    [Fact]
+    public async Task Corrupt_stored_language_falls_back_to_russian()
+    {
+        _store.Values[SettingKeys.Language] = "klingon";
+
+        Assert.Equal(AppLanguage.Ru, (await CreateService().LoadAsync()).Language);
     }
 
     [Fact]

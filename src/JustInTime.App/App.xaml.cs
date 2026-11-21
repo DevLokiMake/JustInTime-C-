@@ -6,6 +6,7 @@ using JustInTime.App.ViewModels;
 using JustInTime.Automation;
 using JustInTime.Automation.Session;
 using JustInTime.Automation.Uia;
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Services;
@@ -89,6 +90,11 @@ public partial class App : Application
 
             var databaseReady = await InitializeDatabaseAsync(showDialog: !_headless);
 
+            if (databaseReady)
+            {
+                await ApplyLanguageAsync();
+            }
+
             if (_headless)
             {
                 await RunDueOnceAsync(databaseReady);
@@ -132,6 +138,20 @@ public partial class App : Application
         // Выключение или выход из Windows: окно не должно прятаться в трей и задерживать завершение.
         _lifecycle?.MarkExiting();
         base.OnSessionEnding(e);
+    }
+
+    /// <summary>Язык интерфейса из настроек. Нужен и окну, и фоновому запуску (тексты уведомлений).</summary>
+    private async Task ApplyLanguageAsync()
+    {
+        try
+        {
+            var settings = await _host!.Services.GetRequiredService<IUserSettingsService>().LoadAsync();
+            Loc.SetLanguage(settings.Language);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Не удалось прочитать язык интерфейса, используется русский");
+        }
     }
 
     private bool AcquireSingleInstance()

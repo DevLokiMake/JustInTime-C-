@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using JustInTime.App.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -10,16 +11,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Navigation = navigation;
 
-        NavItems =
-        [
-            new(NavSection.Dashboard, "Dashboard"),
-            new(NavSection.MyTasks, "My Tasks"),
-            new(NavSection.CreateTask, "Create Task"),
-            new(NavSection.ScheduledMessages, "Scheduled Messages"),
-            new(NavSection.Automation, "Automation"),
-            new(NavSection.History, "History"),
-            new(NavSection.Settings, "Settings")
-        ];
+        _navItems = BuildNavItems();
+        Loc.LanguageChanged += OnLanguageChanged;
 
         // Если раздел сменили из кода (например, кнопкой на Dashboard), выделение в меню следует за ним.
         navigation.PropertyChanged += OnNavigationPropertyChanged;
@@ -29,7 +22,26 @@ public sealed partial class MainViewModel : ObservableObject
 
     public INavigationService Navigation { get; }
 
-    public IReadOnlyList<NavigationItem> NavItems { get; }
+    [ObservableProperty]
+    private IReadOnlyList<NavigationItem> _navItems;
+
+    private static IReadOnlyList<NavigationItem> BuildNavItems() =>
+    [
+        new(NavSection.Dashboard, Loc.T("nav_dashboard")),
+        new(NavSection.MyTasks, Loc.T("nav_mytasks")),
+        new(NavSection.CreateTask, Loc.T("nav_create")),
+        new(NavSection.ScheduledMessages, Loc.T("nav_messages")),
+        new(NavSection.Automation, Loc.T("nav_automation")),
+        new(NavSection.History, Loc.T("nav_history")),
+        new(NavSection.Settings, Loc.T("nav_settings"))
+    ];
+
+    private void OnLanguageChanged()
+    {
+        var section = SelectedItem?.Section ?? Navigation.CurrentSection ?? NavSection.Dashboard;
+        NavItems = BuildNavItems();
+        SelectedItem = NavItems.First(i => i.Section == section);
+    }
 
     [ObservableProperty]
     private NavigationItem? _selectedItem;

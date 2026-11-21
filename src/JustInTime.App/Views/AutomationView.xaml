@@ -1,6 +1,7 @@
 <UserControl x:Class="JustInTime.App.Views.AutomationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:JustInTime.App.Localization">
 
     <UserControl.Triggers>
         <EventTrigger RoutedEvent="Loaded">
@@ -16,18 +17,18 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="32,28,32,16" MaxWidth="680" HorizontalAlignment="Left">
 
-            <TextBlock Text="Automation" Style="{StaticResource H1}" />
-            <TextBlock Text="Автоматизация окон программ через Windows UI Automation."
+            <TextBlock Text="{loc:T page_automation}" Style="{StaticResource H1}" />
+            <TextBlock Text="{loc:T auto_subtitle}"
                        Style="{StaticResource Muted}" Margin="0,2,0,16" TextWrapping="Wrap" />
 
             <!-- Состояние рабочего стола -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Рабочий стол" Style="{StaticResource H2}" />
+                    <TextBlock Text="{loc:T auto_desktop_title}" Style="{StaticResource H2}" />
                     <TextBlock Text="{Binding DesktopStatus}" TextWrapping="Wrap" Margin="0,10,0,0" />
                     <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="Задачи, которые управляют окнами программ (например отправка сообщений), не запускаются на заблокированном компьютере. Они ждут разблокировки и выполняются после неё, если не опоздали." />
-                    <Button Content="Проверить сейчас"
+                               Text="{loc:T auto_desktop_text}" />
+                    <Button Content="{loc:T auto_check_now}"
                             Command="{Binding RefreshDesktopCommand}"
                             Style="{StaticResource SecondaryButton}"
                             HorizontalAlignment="Left" Margin="0,12,0,0" />
@@ -37,11 +38,11 @@
             <!-- Снимок окна -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Снимок окна программы" Style="{StaticResource H2}" />
+                    <TextBlock Text="{loc:T auto_dump_title}" Style="{StaticResource H2}" />
                     <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="Сохраняет в файл структуру элементов открытого окна: имена, типы, доступные действия. Ничего не нажимает и не вводит, значения полей ввода не читаются. Имена элементов могут содержать названия чатов: перед отправкой файла кому-либо просмотрите его." />
+                               Text="{loc:T auto_dump_text}" />
 
-                    <TextBlock Text="Часть названия окна или процесса" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
+                    <TextBlock Text="{loc:T auto_dump_query}" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
                     <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" />
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
@@ -52,10 +53,10 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                        <Button Content="Сделать снимок"
+                        <Button Content="{loc:T auto_dump_button}"
                                 Command="{Binding SnapshotCommand}"
                                 Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
-                        <Button Content="Открыть папку со снимками"
+                        <Button Content="{loc:T auto_dump_open}"
                                 Command="{Binding OpenFolderCommand}"
                                 Style="{StaticResource SecondaryButton}" />
                     </StackPanel>
@@ -89,9 +90,9 @@
             <!-- Проверка ввода текста без отправки -->
             <Border Style="{StaticResource Card}" Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Проверка ввода текста (без отправки)" Style="{StaticResource H2}" />
+                    <TextBlock Text="{loc:T auto_probe_title}" Style="{StaticResource H2}" />
                     <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="Открой в мессенджере любой чат (лучше «Избранное» или чат с собой), нажми кнопку. Программа запишет пробный текст в поле ввода, прочитает его обратно, сохранит список кнопок окна и сразу очистит поле. Ничего не отправляется. Если в поле уже есть текст, программа его не тронет." />
+                               Text="{loc:T auto_probe_text}" />
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <Button Content="WhatsApp" Style="{StaticResource SmallButton}"
@@ -100,16 +101,16 @@
                                 Command="{Binding UseProbePresetCommand}" CommandParameter="Telegram" />
                     </StackPanel>
 
-                    <TextBlock Text="Окно (часть названия или процесса)" Style="{StaticResource FieldLabel}" Margin="0,12,0,6" />
+                    <TextBlock Text="{loc:T auto_probe_window}" Style="{StaticResource FieldLabel}" Margin="0,12,0,6" />
                     <TextBox Text="{Binding ProbeWindow, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Имя поля ввода содержит" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBlock Text="{loc:T auto_probe_field}" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
                     <TextBox Text="{Binding ProbeComposerName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Класс поля (необязательно)" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBlock Text="{loc:T auto_probe_class}" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
                     <TextBox Text="{Binding ProbeComposerClass, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Пробный текст" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
+                    <TextBlock Text="{loc:T auto_probe_sample}" Style="{StaticResource FieldLabel}" Margin="0,10,0,6" />
                     <TextBox Text="{Binding ProbeText, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <Button Content="Проверить ввод"
+                    <Button Content="{loc:T auto_probe_button}"
                             Command="{Binding RunProbeCommand}"
                             Style="{StaticResource PrimaryButton}"
                             HorizontalAlignment="Left" Margin="0,14,0,0" />

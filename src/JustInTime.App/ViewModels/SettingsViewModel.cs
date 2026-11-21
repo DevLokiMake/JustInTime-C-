@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustInTime.App.Services;
 using JustInTime.Core.Interfaces;
+using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,15 @@ public sealed partial class SettingsViewModel(
     IAppLifecycle lifecycle,
     ILogger<SettingsViewModel> logger) : ObservableObject, IInitializableViewModel
 {
+    public IReadOnlyList<Option<AppLanguage>> LanguageOptions { get; } =
+    [
+        new(AppLanguage.Ru, "Русский"),
+        new(AppLanguage.En, "English")
+    ];
+
+    [ObservableProperty]
+    private Option<AppLanguage>? _selectedLanguage;
+
     [ObservableProperty]
     private bool _automationEnabled = true;
 
@@ -60,6 +70,7 @@ public sealed partial class SettingsViewModel(
             NotificationsEnabled = loaded.NotificationsEnabled;
             NotifyOnSuccess = loaded.NotifyOnSuccess;
             MinimizeToTray = loaded.MinimizeToTray;
+            SelectedLanguage = LanguageOptions.First(o => o.Value == loaded.Language);
             LoadAutostart();
             GraceMinutesText = loaded.MissedGraceMinutes.ToString(CultureInfo.InvariantCulture);
             IsLoaded = true;
@@ -85,7 +96,9 @@ public sealed partial class SettingsViewModel(
         try
         {
             var result = await settings.SaveAsync(
-                new UserSettings(AutomationEnabled, NotificationsEnabled, NotifyOnSuccess, grace, MinimizeToTray));
+                new UserSettings(
+                    AutomationEnabled, NotificationsEnabled, NotifyOnSuccess, grace, MinimizeToTray,
+                    SelectedLanguage?.Value ?? AppLanguage.Ru));
 
             if (!result.Succeeded)
             {
@@ -94,6 +107,9 @@ public sealed partial class SettingsViewModel(
             }
 
             lifecycle.MinimizeToTray = MinimizeToTray;
+
+            // Язык меняется сразу: привязки в XAML обновятся сами, остальные страницы создаются заново при переходе.
+            Loc.SetLanguage(SelectedLanguage?.Value ?? AppLanguage.Ru);
 
             var autostartError = ApplyAutostart();
             Show(autostartError ?? "Настройки сохранены.", autostartError is not null);
