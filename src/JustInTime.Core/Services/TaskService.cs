@@ -1,5 +1,6 @@
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -57,13 +58,13 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
 
         if (existing is null)
         {
-            return ServiceResult.Fail("Задача не найдена.");
+            return ServiceResult.Fail(Loc.T("svc_not_found"));
         }
 
         // Тип действия не меняется ни одной операцией репозитория, поэтому эта проверка не устаревает.
         if (existing.ActionType != input.Payload?.GetActionType())
         {
-            return ServiceResult.Fail("Тип действия изменить нельзя. Создайте новую задачу.");
+            return ServiceResult.Fail(Loc.T("svc_type_immutable"));
         }
 
         var now = UtcNow();
@@ -88,7 +89,7 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
             return warnings.Count == 0 ? ServiceResult.Ok() : ServiceResult.OkWithWarnings(warnings);
         }
 
-        return ServiceResult.Fail(await ExplainRefusalAsync(id, "изменить", cancellationToken));
+        return ServiceResult.Fail(await ExplainRefusalAsync(id, Loc.T("verb_edit"), cancellationToken));
     }
 
     public async Task<ServiceResult> CancelAsync(Guid id, CancellationToken cancellationToken = default)
@@ -103,12 +104,11 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
                 ? ServiceResult.Ok()
                 : ServiceResult.OkWithWarnings(new[]
                 {
-                    "Задача отменена, но её запуск не удалось снять в Планировщике Windows: " + removed.Error +
-                    " Он ничего не сделает и будет удалён при следующем запуске приложения."
+                    Loc.T("svc_cancel_unregister_warn", removed.Error)
                 });
         }
 
-        return ServiceResult.Fail(await ExplainRefusalAsync(id, "отменить", cancellationToken));
+        return ServiceResult.Fail(await ExplainRefusalAsync(id, Loc.T("verb_cancel"), cancellationToken));
     }
 
     public async Task<ServiceResult> RetryAsync(Guid id, CancellationToken cancellationToken = default)
@@ -128,8 +128,8 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
         var task = await tasks.GetByIdAsync(id, cancellationToken);
 
         return ServiceResult.Fail(task is null
-            ? "Задача не найдена."
-            : $"Повторить можно только задачу с ошибкой или неизвестным результатом, а эта в статусе «{task.Status.ToDisplayName()}».");
+            ? Loc.T("svc_not_found")
+            : Loc.T("svc_retry_refused", task.Status.ToDisplayName()));
     }
 
     public async Task<ServiceResult> ResolveUnknownAsync(
@@ -139,25 +139,24 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
 
         if (task is null)
         {
-            return ServiceResult.Fail("Задача не найдена.");
+            return ServiceResult.Fail(Loc.T("svc_not_found"));
         }
 
         var note = delivered
-            ? "Подтверждено пользователем: действие было выполнено."
-            : "Подтверждено пользователем: действие не было выполнено.";
+            ? Loc.T("svc_resolved_done")
+            : Loc.T("svc_resolved_not_done");
 
         if (!await tasks.TryResolveUnknownAsync(id, delivered, note, UtcNow(), cancellationToken))
         {
             return ServiceResult.Fail(
-                $"Подтвердить результат можно только у задачи в статусе «{ScheduledTaskStatus.NeedsUserAction.ToDisplayName()}», " +
-                $"а эта в статусе «{task.Status.ToDisplayName()}».");
+                Loc.T("svc_resolve_refused", ScheduledTaskStatus.NeedsUserAction.ToDisplayName(), task.Status.ToDisplayName()));
         }
 
         var next = await _rearmer.RearmIfRecurringAsync(task, cancellationToken);
 
         // «Следующий запуск...» это не предупреждение; предупреждаем только если повтор остановлен.
-        return next.Contains("остановлен", StringComparison.Ordinal)
-            ? ServiceResult.OkWithWarnings(new[] { next.Trim() })
+        return next.Stopped
+            ? ServiceResult.OkWithWarnings(new[] { next.Note.Trim() })
             : ServiceResult.Ok();
     }
 
@@ -185,8 +184,7 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
 
         return new List<string>
         {
-            "Задача сохранена, но её не удалось поставить в Планировщик Windows: " + registration.Error +
-            " Она выполнится в нужное время только пока приложение запущено."
+            Loc.T("svc_register_warn", registration.Error)
         };
     }
 
@@ -221,7 +219,7 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
 
                 if (first is null)
                 {
-                    errors.Add("Не удалось вычислить первый запуск по правилу повтора.");
+                    errors.Add(Loc.T("svc_first_run_failed"));
                 }
                 else
                 {
@@ -269,7 +267,7 @@ public sealed class TaskService(ITaskRepository tasks, ITaskRegistrar registrar,
         var task = await tasks.GetByIdAsync(id, cancellationToken);
 
         return task is null
-            ? "Задача не найдена."
-            : $"Задачу в статусе «{task.Status.ToDisplayName()}» нельзя {action}.";
+            ? Loc.T("svc_not_found")
+            : Loc.T("svc_refusal", task.Status.ToDisplayName(), action);
     }
 }

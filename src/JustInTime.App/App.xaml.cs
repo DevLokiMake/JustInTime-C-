@@ -125,7 +125,7 @@ public partial class App : Application
             }
 
             MessageBox.Show(
-                $"Приложение не удалось запустить.\n\n{ex.Message}",
+                Loc.T("app_start_failed", ex.Message),
                 "JustInTime",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -233,7 +233,7 @@ public partial class App : Application
                 services.AddSingleton(new WindowsSchedulerOptions
                 {
                     ExecutablePath = Environment.ProcessPath
-                        ?? throw new InvalidOperationException("Не удалось определить путь к исполняемому файлу приложения.")
+                        ?? throw new InvalidOperationException(Loc.T("app_exe_path_unknown"))
                 });
                 services.AddSingleton<ITaskRegistrar, WindowsTaskSchedulerRegistrar>();
                 services.AddSingleton(new SchedulerEngineOptions());
@@ -264,7 +264,7 @@ public partial class App : Application
 
                 services.AddSingleton<IAutostartService>(_ => new RegistryAutostartService(
                     Environment.ProcessPath
-                        ?? throw new InvalidOperationException("Не удалось определить путь к исполняемому файлу приложения.")));
+                        ?? throw new InvalidOperationException(Loc.T("app_exe_path_unknown"))));
                 services.AddSingleton<IAppLifecycle, AppLifecycle>();
                 services.AddSingleton<ITextRecognizer, WindowsTextRecognizer>();
                 services.AddSingleton<IImageInputService, ImageInputService>();
@@ -303,9 +303,7 @@ public partial class App : Application
             if (showDialog)
             {
                 MessageBox.Show(
-                    $"Не удалось подключиться к PostgreSQL ({options.Describe()}).\n\n{ex.Message}\n\n" +
-                    "Проверьте, что служба PostgreSQL запущена, пароль задан через user-secrets " +
-                    "и миграции созданы. Подробности в README.",
+                    Loc.T("app_db_failed", options.Describe(), ex.Message),
                     "JustInTime",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -330,14 +328,14 @@ public partial class App : Application
                 : result.Message;
 
             MessageBox.Show(
-                text, "JustInTime: снимок окна", MessageBoxButton.OK,
+                text, Loc.T("app_dump_title"), MessageBoxButton.OK,
                 result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
 
             Shutdown(result.Success ? 0 : 1);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Снимок не удался: {ex.Message}", "JustInTime", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(Loc.T("app_dump_failed", ex.Message), "JustInTime", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -378,7 +376,7 @@ public partial class App : Application
         }
 
         MessageBox.Show(
-            $"Произошла непредвиденная ошибка.\n\n{e.Exception.Message}",
+            Loc.T("app_unexpected_error", e.Exception.Message),
             "JustInTime",
             MessageBoxButton.OK,
             MessageBoxImage.Error);

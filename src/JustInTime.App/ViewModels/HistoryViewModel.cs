@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -33,9 +34,9 @@ public sealed partial class HistoryViewModel : ObservableObject, IInitializableV
 
     public IReadOnlyList<Option<HistoryFilter>> Filters { get; } =
     [
-        new(HistoryFilter.All, "Все"),
-        new(HistoryFilter.Problems, "Проблемы"),
-        new(HistoryFilter.Success, "Успешные")
+        new(HistoryFilter.All, Loc.T("filter_all")),
+        new(HistoryFilter.Problems, Loc.T("filter_problems")),
+        new(HistoryFilter.Success, Loc.T("filter_success"))
     ];
 
     public ObservableCollection<HistoryEntryViewModel> Items { get; } = [];
@@ -91,7 +92,7 @@ public sealed partial class HistoryViewModel : ObservableObject, IInitializableV
             }
 
             IsEmpty = Items.Count == 0;
-            Footer = entries.Count >= PageSize ? $"Показаны последние {PageSize} записей." : string.Empty;
+            Footer = entries.Count >= PageSize ? Loc.T("hist_footer", PageSize) : string.Empty;
             ErrorMessage = null;
         }
         catch (Exception ex)
@@ -99,7 +100,7 @@ public sealed partial class HistoryViewModel : ObservableObject, IInitializableV
             if (version == _loadVersion)
             {
                 _logger.LogError(ex, "Не удалось загрузить журнал");
-                ErrorMessage = $"Не удалось загрузить журнал из PostgreSQL: {ex.Message}";
+                ErrorMessage = Loc.T("hist_load_failed", ex.Message);
             }
         }
         finally

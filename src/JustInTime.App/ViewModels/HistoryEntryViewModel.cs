@@ -1,4 +1,5 @@
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -18,20 +19,20 @@ public sealed record HistoryEntryViewModel(
     {
         var (result, problem) = entry.Result switch
         {
-            null => ("Выполняется", false),
-            ExecutionResult.Success => ("Успешно", false),
-            ExecutionResult.Failed => ("Ошибка", true),
-            ExecutionResult.Unknown => ("Результат неизвестен", true),
-            ExecutionResult.Skipped => ("Пропущено", true),
+            null => (Loc.T("res_running_cap"), false),
+            ExecutionResult.Success => (Loc.T("res_success_cap"), false),
+            ExecutionResult.Failed => (Loc.T("res_failed_cap"), true),
+            ExecutionResult.Unknown => (Loc.T("res_unknown_cap"), true),
+            ExecutionResult.Skipped => (Loc.T("res_skipped_cap"), true),
             _ => (entry.Result.ToString()!, false)
         };
 
         return new HistoryEntryViewModel(
-            entry.ScheduledTask?.Title ?? "Задача удалена",
+            entry.ScheduledTask?.Title ?? Loc.T("task_deleted"),
             entry.StartedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss"),
             result,
             FormatDuration(entry),
-            $"Попытка {entry.AttemptNumber}",
+            Loc.T("attempt_n", entry.AttemptNumber),
             entry.ErrorMessage,
             problem);
     }
@@ -40,18 +41,18 @@ public sealed record HistoryEntryViewModel(
     {
         if (entry.FinishedAt is not { } finished)
         {
-            return "ещё не завершена";
+            return Loc.T("dur_unfinished");
         }
 
         var span = finished - entry.StartedAt;
 
         if (span < TimeSpan.FromSeconds(1))
         {
-            return "меньше секунды";
+            return Loc.T("dur_under_second");
         }
 
         return span < TimeSpan.FromMinutes(1)
-            ? $"{(int)span.TotalSeconds} с"
-            : $"{(int)span.TotalMinutes} мин {span.Seconds} с";
+            ? Loc.T("dur_seconds", (int)span.TotalSeconds)
+            : Loc.T("dur_min_sec", (int)span.TotalMinutes, span.Seconds);
     }
 }

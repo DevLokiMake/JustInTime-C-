@@ -1,5 +1,6 @@
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -104,9 +105,7 @@ public sealed class SchedulerEngine
         return result;
     }
 
-    private const string StuckMessage =
-        "Выполнение прервано: приложение закрылось или завершилось посреди действия. " +
-        "Неизвестно, успело ли действие выполниться. Проверьте результат вручную и при необходимости повторите задачу.";
+    private static string StuckMessage => Loc.T("eng_stuck");
 
     private DateTime Now() => _time.GetUtcNow().UtcDateTime;
 
@@ -119,8 +118,7 @@ public sealed class SchedulerEngine
         if (late > grace)
         {
             var message =
-                $"Пропущена: запуск опоздал на {FormatDuration(late)} при допустимых {FormatDuration(grace)}. " +
-                "Компьютер был выключен или приложение не работало в нужное время. Можно повторить задачу вручную.";
+                Loc.T("eng_missed", FormatDuration(late), FormatDuration(grace));
 
             if (!await _tasks.TryMarkMissedAsync(task.Id, message, now, cancellationToken))
             {
@@ -139,7 +137,7 @@ public sealed class SchedulerEngine
             && !_desktop.IsAvailable(out var reason))
         {
             // Запуска не было: ни попытки, ни записи в историю. Задача ждёт, пока пользователь разблокирует компьютер.
-            var waitMessage = "Ожидает разблокировки: " + reason;
+            var waitMessage = Loc.T("eng_wait_unlock", reason);
 
             return await _tasks.TryMarkWaitingForUnlockAsync(task.Id, waitMessage, now, cancellationToken)
                 ? new TaskRunEntry(
@@ -164,7 +162,7 @@ public sealed class SchedulerEngine
 
         var note = saved
             ? outcome.Message
-            : "Результат не сохранён: состояние задачи изменилось во время выполнения. " + outcome.Message;
+            : Loc.T("eng_not_saved", outcome.Message);
 
         if (saved && status is ScheduledTaskStatus.Completed or ScheduledTaskStatus.Failed)
         {
@@ -175,22 +173,22 @@ public sealed class SchedulerEngine
     }
 
     /// <summary>Повторяющаяся задача после запуска получает следующий (см. TaskRearmer). Неизвестный результат сюда не попадает.</summary>
-    private Task<string> RearmIfRecurringAsync(ScheduledTask task, CancellationToken cancellationToken) =>
-        _rearmer.RearmIfRecurringAsync(task, cancellationToken);
+    private async Task<string> RearmIfRecurringAsync(ScheduledTask task, CancellationToken cancellationToken) =>
+        (await _rearmer.RearmIfRecurringAsync(task, cancellationToken)).Note;
 
     private async Task<ExecutionOutcome> ExecuteSafelyAsync(ScheduledTask task, CancellationToken cancellationToken)
     {
         if (!_executors.TryGetValue(task.ActionType, out var executor))
         {
             return ExecutionOutcome.Failed(
-                $"Действие «{task.ActionType.ToDisplayName()}» пока не поддерживается в этой версии приложения.");
+                Loc.T("eng_unsupported", task.ActionType.ToDisplayName()));
         }
 
         var payload = TaskPayloadSerializer.Deserialize(task.ActionType, task.Payload);
 
         if (payload is null)
         {
-            return ExecutionOutcome.Failed("Параметры задачи повреждены и не читаются. Создайте задачу заново.");
+            return ExecutionOutcome.Failed(Loc.T("eng_payload_corrupt"));
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -204,17 +202,17 @@ public sealed class SchedulerEngine
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return ExecutionOutcome.Unknown(
-                $"Действие не уложилось в {FormatDuration(limit)}. Неизвестно, выполнено ли оно. Проверьте результат вручную.");
+                Loc.T("eng_timeout", FormatDuration(limit)));
         }
         catch (OperationCanceledException)
         {
             return ExecutionOutcome.Unknown(
-                "Выполнение прервано закрытием приложения. Неизвестно, выполнено ли действие. Проверьте результат вручную.");
+                Loc.T("eng_shutdown"));
         }
         catch (Exception ex)
         {
             return ExecutionOutcome.Unknown(
-                $"Непредвиденная ошибка при выполнении: {ex.Message} Неизвестно, выполнено ли действие. Проверьте результат вручную.");
+                Loc.T("eng_unexpected", ex.Message));
         }
     }
 
@@ -232,13 +230,13 @@ public sealed class SchedulerEngine
     {
         if (value < TimeSpan.FromMinutes(1))
         {
-            return $"{Math.Max(1, (int)value.TotalSeconds)} с";
+            return Loc.T("dur_seconds", Math.Max(1, (int)value.TotalSeconds));
         }
 
         var totalMinutes = (int)value.TotalMinutes;
 
         return totalMinutes < 120
-            ? $"{totalMinutes} мин."
-            : $"{totalMinutes / 60} ч {totalMinutes % 60} мин.";
+            ? Loc.T("dur_minutes", totalMinutes)
+            : Loc.T("dur_hours_minutes", totalMinutes / 60, totalMinutes % 60);
     }
 }

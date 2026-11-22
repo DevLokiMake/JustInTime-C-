@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using JustInTime.Automation;
 using JustInTime.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -79,14 +80,14 @@ public sealed partial class AutomationViewModel(
         {
             DesktopAvailable = desktop.IsAvailable(out var reason);
             DesktopStatus = DesktopAvailable
-                ? "Рабочий стол доступен: автоматизация программ возможна."
-                : "Рабочий стол недоступен: " + reason;
+                ? Loc.T("auto_desktop_ok")
+                : Loc.T("auto_desktop_unavailable", reason);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Не удалось определить состояние рабочего стола");
             DesktopAvailable = false;
-            DesktopStatus = "Не удалось определить состояние рабочего стола: " + ex.Message;
+            DesktopStatus = Loc.T("auto_desktop_unknown", ex.Message);
         }
     }
 
@@ -125,7 +126,7 @@ public sealed partial class AutomationViewModel(
         catch (Exception ex)
         {
             logger.LogError(ex, "Снимок окна «{Query}» завершился ошибкой", Query);
-            Message = "Не удалось сделать снимок: " + ex.Message;
+            Message = Loc.T("auto_dump_error", ex.Message);
             MessageIsError = true;
         }
         finally
@@ -172,7 +173,7 @@ public sealed partial class AutomationViewModel(
             ProbeFailed = !result.Success;
             ProbeReport = result.File is null
                 ? result.Report
-                : $"{(result.Success ? "Текст записан и прочитан обратно." : "Проверка не прошла.")} Отчёт: {result.File}";
+                : Loc.T("auto_probe_report", result.Success ? Loc.T("auto_probe_ok") : Loc.T("auto_probe_fail"), result.File);
 
             logger.LogInformation("Проверка ввода «{Window}»: успех={Success}", ProbeWindow, result.Success);
         }
@@ -180,7 +181,7 @@ public sealed partial class AutomationViewModel(
         {
             logger.LogError(ex, "Проверка ввода «{Window}» завершилась ошибкой", ProbeWindow);
             ProbeFailed = true;
-            ProbeReport = "Проверка не удалась: " + ex.Message;
+            ProbeReport = Loc.T("auto_probe_error", ex.Message);
         }
         finally
         {
@@ -201,7 +202,7 @@ public sealed partial class AutomationViewModel(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Не удалось открыть папку снимков");
-            Message = "Не удалось открыть папку: " + ex.Message;
+            Message = Loc.T("auto_folder_error", ex.Message);
             MessageIsError = true;
         }
     }

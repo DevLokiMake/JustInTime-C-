@@ -1,5 +1,6 @@
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -18,7 +19,7 @@ public sealed class TaskItemViewModel
         var rule = task.IsRecurring ? RecurrenceSerializer.Deserialize(task.Recurrence) : null;
         RepeatText = rule is null ? null : RecurrenceDescriber.Describe(rule);
         ErrorText = task.LastError;
-        AttemptsText = task.AttemptCount > 0 ? $"  ·  Попыток: {task.AttemptCount}" : string.Empty;
+        AttemptsText = task.AttemptCount > 0 ? Loc.T("task_attempts", task.AttemptCount) : string.Empty;
 
         IsProblem = task.Status is ScheduledTaskStatus.Failed or ScheduledTaskStatus.NeedsUserAction;
         CanEdit = ScheduledTaskStatuses.Editable.Contains(task.Status);

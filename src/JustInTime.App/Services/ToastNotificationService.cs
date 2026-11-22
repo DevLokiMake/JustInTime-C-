@@ -1,6 +1,7 @@
 using JustInTime.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Toolkit.Uwp.Notifications;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.Services;
 
@@ -17,8 +18,8 @@ public sealed class ToastNotificationService(ILogger<ToastNotificationService> l
         {
             var prefix = kind switch
             {
-                NotificationKind.Error => "Ошибка: ",
-                NotificationKind.Warning => "Внимание: ",
+                NotificationKind.Error => Loc.T("toast_error"),
+                NotificationKind.Warning => Loc.T("toast_warning"),
                 _ => string.Empty
             };
 

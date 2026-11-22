@@ -29,8 +29,7 @@ public sealed class UserSettingsService(ISettingsStore store) : IUserSettingsSer
             or > SchedulerEngineOptions.MaxMissedGraceMinutes)
         {
             return ServiceResult.Fail(
-                $"Допустимое опоздание должно быть от {SchedulerEngineOptions.MinMissedGraceMinutes} до " +
-                $"{SchedulerEngineOptions.MaxMissedGraceMinutes} минут.");
+                Loc.T("set_grace_range", SchedulerEngineOptions.MinMissedGraceMinutes, SchedulerEngineOptions.MaxMissedGraceMinutes));
         }
 
         await store.SetBoolAsync(SettingKeys.AutomationEnabled, settings.AutomationEnabled, cancellationToken);

@@ -7,6 +7,7 @@ using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -79,7 +80,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         var suggested = time.GetLocalNow().AddMinutes(30);
         _dateText = suggested.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
         _timeText = suggested.ToString("HH:mm", CultureInfo.InvariantCulture);
-        _timeZoneText = $"Часовой пояс: {time.LocalTimeZone.DisplayName}";
+        _timeZoneText = Loc.T("edit_timezone", time.LocalTimeZone.DisplayName);
     }
 
     public IReadOnlyList<Option<ActionType>> ActionOptions { get; } =
@@ -107,43 +108,43 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
     public IReadOnlyList<Option<bool>> SwitchOptions { get; } =
     [
-        new(true, "Включить"),
-        new(false, "Выключить")
+        new(true, Loc.T("switch_on_cap")),
+        new(false, Loc.T("switch_off_cap"))
     ];
 
     public IReadOnlyList<Option<ScheduleMode>> ModeOptions { get; } =
     [
-        new(ScheduleMode.AfterDelay, "Через несколько минут"),
-        new(ScheduleMode.AtTime, "В указанное время")
+        new(ScheduleMode.AfterDelay, Loc.T("mode_after")),
+        new(ScheduleMode.AtTime, Loc.T("mode_at"))
     ];
 
     public IReadOnlyList<Option<RepeatMode>> RepeatOptions { get; } =
     [
-        new(RepeatMode.None, "Не повторять"),
-        new(RepeatMode.Interval, "Каждые N минут"),
-        new(RepeatMode.Daily, "Каждые N дней"),
-        new(RepeatMode.Weekly, "По дням недели"),
-        new(RepeatMode.Monthly, "Раз в месяц")
+        new(RepeatMode.None, Loc.T("repeat_none")),
+        new(RepeatMode.Interval, Loc.T("repeat_interval")),
+        new(RepeatMode.Daily, Loc.T("repeat_daily")),
+        new(RepeatMode.Weekly, Loc.T("repeat_weekly")),
+        new(RepeatMode.Monthly, Loc.T("repeat_monthly"))
     ];
 
     public IReadOnlyList<WeekdayChoice> Weekdays { get; } =
     [
-        new(DayOfWeek.Monday, "Пн"),
-        new(DayOfWeek.Tuesday, "Вт"),
-        new(DayOfWeek.Wednesday, "Ср"),
-        new(DayOfWeek.Thursday, "Чт"),
-        new(DayOfWeek.Friday, "Пт"),
-        new(DayOfWeek.Saturday, "Сб"),
-        new(DayOfWeek.Sunday, "Вс")
+        new(DayOfWeek.Monday, Loc.T("wd_mon")),
+        new(DayOfWeek.Tuesday, Loc.T("wd_tue")),
+        new(DayOfWeek.Wednesday, Loc.T("wd_wed")),
+        new(DayOfWeek.Thursday, Loc.T("wd_thu")),
+        new(DayOfWeek.Friday, Loc.T("wd_fri")),
+        new(DayOfWeek.Saturday, Loc.T("wd_sat")),
+        new(DayOfWeek.Sunday, Loc.T("wd_sun"))
     ];
 
     public ObservableCollection<string> Errors { get; } = [];
 
     [ObservableProperty]
-    private string _pageTitle = "Создать задачу";
+    private string _pageTitle = Loc.T("page_create");
 
     [ObservableProperty]
-    private string _saveButtonText = "Создать";
+    private string _saveButtonText = Loc.T("btn_create");
 
     [ObservableProperty]
     private bool _canChangeAction = true;
@@ -248,9 +249,9 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
     public string EveryLabel => SelectedRepeat?.Value switch
     {
-        RepeatMode.Interval => $"Каждые сколько минут (от {RecurrenceRule.MinIntervalMinutes})",
-        RepeatMode.Daily => "Каждые сколько дней",
-        RepeatMode.Monthly => "Каждые сколько месяцев",
+        RepeatMode.Interval => Loc.T("every_minutes", RecurrenceRule.MinIntervalMinutes),
+        RepeatMode.Daily => Loc.T("every_days"),
+        RepeatMode.Monthly => Loc.T("every_months"),
         _ => string.Empty
     };
 
@@ -262,8 +263,8 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     public void BeginEdit(Guid taskId)
     {
         _editingId = taskId;
-        PageTitle = "Редактировать задачу";
-        SaveButtonText = "Сохранить";
+        PageTitle = Loc.T("page_edit");
+        SaveButtonText = Loc.T("common_save");
         CanChangeAction = false;
     }
 
@@ -299,7 +300,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 // показываем до перехода, чтобы пользователь его не пропустил.
                 if (result.Warnings.Count > 0)
                 {
-                    _dialogs.Warn("Задача сохранена", result.WarningText);
+                    _dialogs.Warn(Loc.T("edit_saved_title"), result.WarningText);
                 }
 
                 _navigation.Navigate(NavSection.MyTasks);
@@ -311,7 +312,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         catch (Exception ex)
         {
             _logger.LogError(ex, "Не удалось сохранить задачу");
-            ShowErrors([$"Не удалось сохранить задачу: {ex.Message}"]);
+            ShowErrors([Loc.T("edit_save_failed", ex.Message)]);
         }
         finally
         {
@@ -338,7 +339,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
         if (payload is null)
         {
-            errors.Add("Выберите тип действия.");
+            errors.Add(Loc.T("edit_choose_action"));
         }
 
         if (errors.Count > 0 || payload is null || schedule is null)
@@ -365,7 +366,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         if (mode is RepeatMode.Interval or RepeatMode.Daily or RepeatMode.Monthly
             && !int.TryParse(RepeatEveryText?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out every))
         {
-            errors.Add("В повторе укажите целое число, например 1.");
+            errors.Add(Loc.T("edit_err_repeat_number"));
             return null;
         }
 
@@ -389,7 +390,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 {
                     if (!int.TryParse(DayOfMonthText.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
                     {
-                        errors.Add("Число месяца укажите целым числом от 1 до 31.");
+                        errors.Add(Loc.T("edit_err_month_day"));
                         return null;
                     }
 
@@ -449,7 +450,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 return new AfterDelaySchedule(minutes);
             }
 
-            errors.Add("Укажите целое число минут, например 15.");
+            errors.Add(Loc.T("edit_err_minutes"));
             return null;
         }
 
@@ -460,12 +461,12 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
 
         if (!dateOk)
         {
-            errors.Add("Дату укажите в формате дд.мм.гггг, например 25.12.2026.");
+            errors.Add(Loc.T("edit_err_date"));
         }
 
         if (!timeOk)
         {
-            errors.Add("Время укажите в формате чч:мм, например 09:30.");
+            errors.Add(Loc.T("edit_err_time"));
         }
 
         return dateOk && timeOk
@@ -482,7 +483,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             if (task is null)
             {
                 IsEditable = false;
-                ShowErrors(["Задача не найдена. Возможно, она была удалена."]);
+                ShowErrors([Loc.T("edit_err_not_found")]);
                 return;
             }
 
@@ -491,7 +492,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             if (payload is null)
             {
                 IsEditable = false;
-                ShowErrors(["Не удалось прочитать параметры задачи."]);
+                ShowErrors([Loc.T("edit_err_unreadable")]);
                 return;
             }
 
@@ -504,14 +505,14 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             if (!ScheduledTaskStatuses.Editable.Contains(task.Status))
             {
                 IsEditable = false;
-                ShowErrors([$"Задачу в статусе «{task.Status.ToDisplayName()}» нельзя изменить."]);
+                ShowErrors([Loc.T("edit_err_status", task.Status.ToDisplayName())]);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Не удалось загрузить задачу {TaskId}", id);
             IsEditable = false;
-            ShowErrors([$"Не удалось загрузить задачу: {ex.Message}"]);
+            ShowErrors([Loc.T("edit_err_load", ex.Message)]);
         }
     }
 
@@ -531,7 +532,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 {
                     // Такая задача могла остаться от прошлой версии. Менять её бессмысленно: она не выполнится.
                     IsEditable = false;
-                    ShowErrors([$"«{UiNames.Setting(setting.Setting)}» в Windows не поддерживается. Отмените эту задачу и создайте новую."]);
+                    ShowErrors([Loc.T("edit_err_unsupported_setting", UiNames.Setting(setting.Setting))]);
                 }
                 else
                 {
@@ -571,7 +572,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         SelectedMode = ModeOptions.First(o => o.Value == ScheduleMode.AtTime);
         DateText = local.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
         TimeText = local.ToString("HH:mm", CultureInfo.InvariantCulture);
-        TimeZoneText = $"Часовой пояс: {zone.DisplayName}";
+        TimeZoneText = Loc.T("edit_timezone", zone.DisplayName);
     }
 
     private void ShowErrors(IEnumerable<string> errors)

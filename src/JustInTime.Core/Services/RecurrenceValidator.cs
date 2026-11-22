@@ -1,4 +1,5 @@
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -12,7 +13,7 @@ public static class RecurrenceValidator
 
         if (rule is null)
         {
-            errors.Add("Не указано правило повтора.");
+            errors.Add(Loc.T("val_rec_missing"));
             return errors;
         }
 
@@ -22,7 +23,7 @@ public static class RecurrenceValidator
                 if (rule.Every is < RecurrenceRule.MinIntervalMinutes or > RecurrenceRule.MaxIntervalMinutes)
                 {
                     errors.Add(
-                        $"Интервал должен быть от {RecurrenceRule.MinIntervalMinutes} минут до {RecurrenceRule.MaxIntervalMinutes} минут (7 суток).");
+                        Loc.T("val_rec_interval", RecurrenceRule.MinIntervalMinutes, RecurrenceRule.MaxIntervalMinutes));
                 }
 
                 break;
@@ -30,7 +31,7 @@ public static class RecurrenceValidator
             case RecurrenceKind.Daily:
                 if (rule.Every is < 1 or > RecurrenceRule.MaxEveryDays)
                 {
-                    errors.Add($"Повтор каждые N дней: N от 1 до {RecurrenceRule.MaxEveryDays}.");
+                    errors.Add(Loc.T("val_rec_days", RecurrenceRule.MaxEveryDays));
                 }
 
                 break;
@@ -38,7 +39,7 @@ public static class RecurrenceValidator
             case RecurrenceKind.Weekly:
                 if (rule.DaysOfWeekMask is <= 0 or > 0b1111111)
                 {
-                    errors.Add("Выберите хотя бы один день недели.");
+                    errors.Add(Loc.T("val_rec_weekday"));
                 }
 
                 break;
@@ -46,23 +47,23 @@ public static class RecurrenceValidator
             case RecurrenceKind.Monthly:
                 if (rule.Every is < 1 or > RecurrenceRule.MaxEveryMonths)
                 {
-                    errors.Add($"Повтор каждые N месяцев: N от 1 до {RecurrenceRule.MaxEveryMonths}.");
+                    errors.Add(Loc.T("val_rec_months", RecurrenceRule.MaxEveryMonths));
                 }
 
                 if (rule.DayOfMonth is { } day && day is < 1 or > 31)
                 {
-                    errors.Add("Число месяца должно быть от 1 до 31.");
+                    errors.Add(Loc.T("val_rec_day_range"));
                 }
 
                 if (requireComplete && rule.DayOfMonth is null)
                 {
-                    errors.Add("Не указано число месяца.");
+                    errors.Add(Loc.T("val_rec_day_missing"));
                 }
 
                 break;
 
             default:
-                errors.Add("Неизвестный вид повтора.");
+                errors.Add(Loc.T("val_rec_kind"));
                 break;
         }
 
@@ -70,12 +71,12 @@ public static class RecurrenceValidator
             && rule.Kind != RecurrenceKind.Interval
             && rule.TimeOfDayMinutes is not (>= 0 and < 24 * 60))
         {
-            errors.Add("Не указано время суток для повтора.");
+            errors.Add(Loc.T("val_rec_time_missing"));
         }
 
         if (rule.TimeOfDayMinutes is { } t && t is < 0 or >= 24 * 60)
         {
-            errors.Add("Время суток для повтора вне допустимых границ.");
+            errors.Add(Loc.T("val_rec_time_range"));
         }
 
         return errors;

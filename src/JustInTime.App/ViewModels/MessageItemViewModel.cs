@@ -17,7 +17,7 @@ public sealed class MessageItemViewModel
         var payload = TaskPayloadSerializer.Deserialize(task.ActionType, task.Payload) as SendMessagePayload;
 
         AppName = payload is null ? "?" : UiNames.Messenger(payload.App);
-        Recipient = payload?.Recipient ?? "не удалось прочитать";
+        Recipient = payload?.Recipient ?? Loc.T("recipient_unreadable");
         TextPreview = payload is null ? string.Empty : Preview(payload.Text);
 
         WhenText = task.ScheduledAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm");

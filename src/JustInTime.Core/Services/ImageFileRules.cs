@@ -1,3 +1,4 @@
+using JustInTime.Core.Localization;
 namespace JustInTime.Core.Services;
 
 /// <summary>Какие файлы можно отдать на распознавание. Проверка до чтения файла, чтобы не грузить в память что попало.</summary>
@@ -14,17 +15,17 @@ public static class ImageFileRules
 
         if (!Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
-            return $"Формат «{extension}» не поддерживается. Подойдут: {string.Join(", ", Extensions)}.";
+            return Loc.T("img_rule_format", extension, string.Join(", ", Extensions));
         }
 
         if (length <= 0)
         {
-            return "Файл пустой.";
+            return Loc.T("img_rule_empty");
         }
 
         if (length > MaxBytes)
         {
-            return $"Файл слишком большой (больше {MaxBytes / 1024 / 1024} МБ).";
+            return Loc.T("img_rule_big", MaxBytes / 1024 / 1024);
         }
 
         return null;

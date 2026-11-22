@@ -1,5 +1,6 @@
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -34,17 +35,17 @@ public sealed class RunNotifier(INotificationService notifications, ISettingsSto
         {
             notifications.Show(
                 NotificationKind.Warning,
-                "Задачи прерваны",
-                $"Задач с неизвестным результатом: {report.RecoveredStuck}. Проверьте результат вручную в разделе My Tasks.");
+                Loc.T("notify_stuck_title"),
+                Loc.T("notify_stuck_text", report.RecoveredStuck));
         }
 
         var problems = report.Entries.Where(IsProblem).ToList();
-        Announce(problems, NotificationKind.Error, "Проблемы с задачами", "Задач с проблемами");
+        Announce(problems, NotificationKind.Error, Loc.T("notify_problems_title"), Loc.T("notify_problems_text"));
 
         if (onSuccess)
         {
             var done = report.Entries.Where(e => e.Result == ExecutionResult.Success).ToList();
-            Announce(done, NotificationKind.Info, "Задачи выполнены", "Выполнено задач");
+            Announce(done, NotificationKind.Info, Loc.T("notify_done_title"), Loc.T("notify_done_text"));
         }
     }
 
@@ -69,7 +70,7 @@ public sealed class RunNotifier(INotificationService notifications, ISettingsSto
 
         if (entries.Count > MaxIndividual)
         {
-            notifications.Show(kind, summaryTitle, $"{summaryText}: {entries.Count}. Подробности в разделе History.");
+            notifications.Show(kind, summaryTitle, Loc.T("notify_summary", summaryText, entries.Count));
             return;
         }
 
@@ -86,8 +87,8 @@ public sealed class RunNotifier(INotificationService notifications, ISettingsSto
     {
         var text = entry.Result switch
         {
-            ExecutionResult.Success => string.IsNullOrWhiteSpace(entry.Message) ? "Выполнена." : entry.Message,
-            _ => string.IsNullOrWhiteSpace(entry.Message) ? "Подробности в разделе History." : entry.Message
+            ExecutionResult.Success => string.IsNullOrWhiteSpace(entry.Message) ? Loc.T("notify_completed") : entry.Message,
+            _ => string.IsNullOrWhiteSpace(entry.Message) ? Loc.T("notify_details") : entry.Message
         };
 
         return text!.Length <= MaxMessageLength ? text : text[..(MaxMessageLength - 1)] + "…";

@@ -5,6 +5,7 @@ using JustInTime.App.Services;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -13,7 +14,7 @@ public sealed partial class DashboardViewModel(
     INavigationService navigation,
     ILogger<DashboardViewModel> logger) : ObservableObject, IInitializableViewModel
 {
-    private const string NoNextTask = "Нет запланированных задач";
+    private static string NoNextTask => Loc.T("dash_no_next");
 
     public ObservableCollection<HistoryItemViewModel> RecentActions { get; } = [];
 
@@ -81,7 +82,7 @@ public sealed partial class DashboardViewModel(
         catch (Exception ex)
         {
             logger.LogError(ex, "Не удалось загрузить данные Dashboard");
-            ErrorMessage = $"Не удалось загрузить данные из PostgreSQL: {ex.Message}";
+            ErrorMessage = Loc.T("dash_load_failed", ex.Message);
         }
         finally
         {
@@ -108,16 +109,16 @@ public sealed partial class DashboardViewModel(
 
         var result = entry.Result switch
         {
-            null => "выполняется",
-            ExecutionResult.Success => "успешно",
-            ExecutionResult.Failed => "ошибка",
-            ExecutionResult.Unknown => "результат неизвестен",
-            ExecutionResult.Skipped => "пропущено",
+            null => Loc.T("res_running"),
+            ExecutionResult.Success => Loc.T("res_success"),
+            ExecutionResult.Failed => Loc.T("res_failed"),
+            ExecutionResult.Unknown => Loc.T("res_unknown"),
+            ExecutionResult.Skipped => Loc.T("res_skipped"),
             _ => entry.Result.ToString()
         };
 
         return new HistoryItemViewModel(
-            entry.ScheduledTask?.Title ?? "Без названия",
+            entry.ScheduledTask?.Title ?? Loc.T("untitled"),
             $"{when} · {result}",
             entry.ErrorMessage);
     }

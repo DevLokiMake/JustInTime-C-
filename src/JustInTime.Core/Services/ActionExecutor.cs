@@ -1,5 +1,6 @@
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -16,7 +17,7 @@ public abstract class ActionExecutor<TPayload> : IActionExecutor where TPayload 
     public Task<ExecutionOutcome> ExecuteAsync(TaskPayload payload, CancellationToken cancellationToken) =>
         payload is TPayload typed
             ? ExecuteAsync(typed, cancellationToken)
-            : Task.FromResult(ExecutionOutcome.Failed("Параметры задачи не подходят к этому действию."));
+            : Task.FromResult(ExecutionOutcome.Failed(Loc.T("exe_payload_mismatch")));
 
     protected abstract Task<ExecutionOutcome> ExecuteAsync(TPayload payload, CancellationToken cancellationToken);
 }

@@ -6,6 +6,7 @@ using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -45,9 +46,9 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
 
     public IReadOnlyList<Option<MessageFilter>> Filters { get; } =
     [
-        new(MessageFilter.Active, "Запланированные"),
-        new(MessageFilter.NeedsAttention, "Требуют проверки"),
-        new(MessageFilter.Finished, "Завершённые")
+        new(MessageFilter.Active, Loc.T("filter_msg_active")),
+        new(MessageFilter.NeedsAttention, Loc.T("filter_msg_attention")),
+        new(MessageFilter.Finished, Loc.T("filter_finished"))
     ];
 
     public ObservableCollection<MessageItemViewModel> Items { get; } = [];
@@ -99,12 +100,12 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
         }
 
         var text = item.IsRepeating
-            ? $"Отменить «{item.Title}»? Повтор тоже будет отменён."
-            : $"Отменить «{item.Title}»?";
+            ? Loc.T("msgs_cancel_confirm_repeat", item.Title)
+            : Loc.T("msgs_cancel_confirm", item.Title);
 
-        if (_dialogs.Confirm("Отмена сообщения", text))
+        if (_dialogs.Confirm(Loc.T("msgs_cancel_title"), text))
         {
-            await RunAsync(() => _tasks.CancelAsync(item.Id), "отменить сообщение");
+            await RunAsync(() => _tasks.CancelAsync(item.Id), Loc.T("desc_cancel_message"));
         }
     }
 
@@ -114,7 +115,7 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
     {
         if (item is { CanRetry: true })
         {
-            await RunAsync(() => _tasks.RetryAsync(item.Id), "повторить сообщение");
+            await RunAsync(() => _tasks.RetryAsync(item.Id), Loc.T("desc_retry_message"));
         }
     }
 
@@ -127,16 +128,15 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
         }
 
         if (!_dialogs.Confirm(
-                "Сообщение отправлено?",
-                $"Вы проверили чат с «{item.Recipient}»: сообщение «{item.Title}» там есть?\n\n" +
-                "Задача будет отмечена как выполненная." +
-                (item.IsRepeating ? " Следующий запуск по повтору будет назначен." : string.Empty)))
+                Loc.T("msgs_sent_title"),
+                Loc.T("msgs_sent_text", item.Recipient, item.Title) +
+                (item.IsRepeating ? Loc.T("msgs_next_run_assigned") : string.Empty)))
         {
             return;
         }
 
         _logger.LogInformation("Пользователь подтвердил: сообщение по задаче {TaskId} отправлено", item.Id);
-        await RunAsync(() => _tasks.ResolveUnknownAsync(item.Id, delivered: true), "подтвердить отправку");
+        await RunAsync(() => _tasks.ResolveUnknownAsync(item.Id, delivered: true), Loc.T("desc_confirm_sent"));
     }
 
     [RelayCommand]
@@ -148,16 +148,15 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
         }
 
         if (!_dialogs.Confirm(
-                "Сообщение не отправлено?",
-                $"Вы проверили чат с «{item.Recipient}»: сообщения «{item.Title}» там нет?\n\n" +
-                "Задача будет отмечена как неудавшаяся, после этого её можно будет повторить." +
-                (item.IsRepeating ? " Следующий запуск по повтору будет назначен." : string.Empty)))
+                Loc.T("msgs_not_sent_title"),
+                Loc.T("msgs_not_sent_text", item.Recipient, item.Title) +
+                (item.IsRepeating ? Loc.T("msgs_next_run_assigned") : string.Empty)))
         {
             return;
         }
 
         _logger.LogInformation("Пользователь подтвердил: сообщение по задаче {TaskId} не отправлено", item.Id);
-        await RunAsync(() => _tasks.ResolveUnknownAsync(item.Id, delivered: false), "подтвердить, что сообщение не ушло");
+        await RunAsync(() => _tasks.ResolveUnknownAsync(item.Id, delivered: false), Loc.T("desc_confirm_not_sent"));
     }
 
     private async Task RunAsync(Func<Task<ServiceResult>> operation, string description)
@@ -172,7 +171,7 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
         catch (Exception ex)
         {
             _logger.LogError(ex, "Не удалось {Action}", description);
-            ErrorMessage = $"Не удалось {description}: {ex.Message}";
+            ErrorMessage = Loc.T("op_failed", description, ex.Message);
         }
 
         await LoadAsync();
@@ -229,7 +228,7 @@ public sealed partial class ScheduledMessagesViewModel : ObservableObject, IInit
             }
 
             _logger.LogError(ex, "Не удалось загрузить сообщения");
-            ErrorMessage = $"Не удалось загрузить сообщения из PostgreSQL: {ex.Message}";
+            ErrorMessage = Loc.T("msgs_load_failed", ex.Message);
         }
         finally
         {

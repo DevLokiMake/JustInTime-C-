@@ -3,6 +3,7 @@ using System.Windows;
 using JustInTime.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.Services;
 
@@ -118,7 +119,7 @@ public sealed class AppLifecycle(IServiceProvider services, ILogger<AppLifecycle
             if (!_trayHintShown)
             {
                 _trayHintShown = true;
-                _tray?.ShowBalloon("JustInTime работает", "Окно скрыто, задачи продолжат выполняться. Выход: правый клик по значку.");
+                _tray?.ShowBalloon(Loc.T("tray_balloon_title"), Loc.T("tray_balloon_text"));
             }
 
             return;

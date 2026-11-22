@@ -1,4 +1,5 @@
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -18,17 +19,17 @@ public static class TaskValidator
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            errors.Add("Введите название задачи.");
+            errors.Add(Loc.T("val_title_empty"));
         }
         else if (title.Trim().Length > MaxTitleLength)
         {
-            errors.Add($"Название не должно быть длиннее {MaxTitleLength} символов.");
+            errors.Add(Loc.T("val_title_long", MaxTitleLength));
         }
 
         switch (payload)
         {
             case null:
-                errors.Add("Не указаны параметры действия.");
+                errors.Add(Loc.T("val_no_params"));
                 break;
             case SendMessagePayload message:
                 ValidateMessage(message, errors);
@@ -43,7 +44,7 @@ public static class TaskValidator
                 ValidateUrl(url, errors);
                 break;
             default:
-                errors.Add("Неизвестный тип действия.");
+                errors.Add(Loc.T("val_unknown_action"));
                 break;
         }
 
@@ -54,16 +55,16 @@ public static class TaskValidator
     {
         if (!Enum.IsDefined(payload.App))
         {
-            errors.Add("Выберите мессенджер.");
+            errors.Add(Loc.T("val_choose_messenger"));
         }
 
         if (string.IsNullOrWhiteSpace(payload.Recipient))
         {
-            errors.Add("Укажите получателя.");
+            errors.Add(Loc.T("rcp_empty"));
         }
         else if (payload.Recipient.Length > MaxRecipientLength)
         {
-            errors.Add($"Имя получателя не должно быть длиннее {MaxRecipientLength} символов.");
+            errors.Add(Loc.T("val_recipient_long", MaxRecipientLength));
         }
         else if (Enum.IsDefined(payload.App))
         {
@@ -76,26 +77,26 @@ public static class TaskValidator
             else if (payload.App == MessengerApp.WhatsApp
                      && parsed.Recipient!.Kind != RecipientKind.Phone)
             {
-                errors.Add("Для WhatsApp укажите номер телефона в международном формате.");
+                errors.Add(Loc.T("val_wa_phone"));
             }
             else if (payload.App is MessengerApp.Telegram or MessengerApp.TelegramDesktop
                      && parsed.Recipient!.Kind == RecipientKind.Name)
             {
-                errors.Add("Для Telegram укажите номер телефона с плюсом или @username.");
+                errors.Add(Loc.T("val_tg_recipient"));
             }
         }
 
         if (string.IsNullOrWhiteSpace(payload.Text))
         {
-            errors.Add("Введите текст сообщения.");
+            errors.Add(Loc.T("val_text_empty"));
         }
         else if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
         {
-            errors.Add("Пока поддерживается сообщение в одну строку: Enter в мессенджере отправил бы его раньше времени. Уберите переносы строк.");
+            errors.Add(Loc.T("val_text_multiline"));
         }
         else if (payload.Text.Length > MaxTextLength)
         {
-            errors.Add($"Сообщение не должно быть длиннее {MaxTextLength} символов.");
+            errors.Add(Loc.T("val_text_long", MaxTextLength));
         }
     }
 
@@ -103,7 +104,7 @@ public static class TaskValidator
     {
         if (!Enum.IsDefined(payload.Setting))
         {
-            errors.Add("Выберите системную настройку.");
+            errors.Add(Loc.T("val_choose_setting"));
         }
     }
 
@@ -111,26 +112,26 @@ public static class TaskValidator
     {
         if (string.IsNullOrWhiteSpace(payload.ProgramPath))
         {
-            errors.Add("Укажите путь к программе.");
+            errors.Add(Loc.T("val_path_empty"));
         }
         else if (payload.ProgramPath.Length > MaxPathLength)
         {
-            errors.Add($"Путь не должен быть длиннее {MaxPathLength} символов.");
+            errors.Add(Loc.T("val_path_long", MaxPathLength));
         }
         else if (payload.ProgramPath.Any(char.IsControl))
         {
-            errors.Add("Путь содержит недопустимые символы.");
+            errors.Add(Loc.T("val_path_chars"));
         }
 
         if (payload.Arguments is { } arguments)
         {
             if (arguments.Length > MaxArgumentsLength)
             {
-                errors.Add($"Аргументы не должны быть длиннее {MaxArgumentsLength} символов.");
+                errors.Add(Loc.T("val_args_long", MaxArgumentsLength));
             }
             else if (arguments.Any(c => char.IsControl(c) && c is not ('\t')))
             {
-                errors.Add("Аргументы содержат недопустимые символы.");
+                errors.Add(Loc.T("val_args_chars"));
             }
         }
     }
@@ -139,13 +140,13 @@ public static class TaskValidator
     {
         if (string.IsNullOrWhiteSpace(payload.Url))
         {
-            errors.Add("Укажите ссылку.");
+            errors.Add(Loc.T("val_url_empty"));
             return;
         }
 
         if (payload.Url.Length > MaxUrlLength)
         {
-            errors.Add($"Ссылка не должна быть длиннее {MaxUrlLength} символов.");
+            errors.Add(Loc.T("val_url_long", MaxUrlLength));
             return;
         }
 
@@ -155,7 +156,7 @@ public static class TaskValidator
 
         if (!valid)
         {
-            errors.Add("Ссылка должна начинаться с http:// или https://.");
+            errors.Add(Loc.T("val_url_scheme"));
         }
     }
 }

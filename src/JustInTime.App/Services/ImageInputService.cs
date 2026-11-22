@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using JustInTime.Core.Services;
 using Microsoft.Win32;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.Services;
 
@@ -12,8 +13,8 @@ public sealed class ImageInputService : IImageInputService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Фото или скриншот с текстом",
-            Filter = "Изображения|" + string.Join(";", ImageFileRules.Extensions.Select(e => "*" + e)),
+            Title = Loc.T("img_dialog_title"),
+            Filter = Loc.T("img_dialog_filter") + "|" + string.Join(";", ImageFileRules.Extensions.Select(e => "*" + e)),
             CheckFileExists = true
         };
 
@@ -28,7 +29,7 @@ public sealed class ImageInputService : IImageInputService
 
             if (!info.Exists)
             {
-                return ImageInputResult.Fail("Файл не найден.");
+                return ImageInputResult.Fail(Loc.T("img_err_file_missing"));
             }
 
             var error = ImageFileRules.Validate(path, info.Length);
@@ -39,7 +40,7 @@ public sealed class ImageInputService : IImageInputService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return ImageInputResult.Fail($"Не удалось прочитать файл: {ex.Message}");
+            return ImageInputResult.Fail(Loc.T("img_err_read_file", ex.Message));
         }
     }
 
@@ -52,7 +53,7 @@ public sealed class ImageInputService : IImageInputService
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
-            return $"Буфер обмена сейчас недоступен: {ex.Message}";
+            return Loc.T("img_err_clipboard_busy", ex.Message);
         }
     }
 
@@ -63,14 +64,14 @@ public sealed class ImageInputService : IImageInputService
             if (!Clipboard.ContainsImage())
             {
                 return ImageInputResult.Fail(
-                    "В буфере обмена нет изображения. Сделайте скриншот (Win+Shift+S) и нажмите кнопку ещё раз.");
+                    Loc.T("img_err_clipboard_empty"));
             }
 
             var source = Clipboard.GetImage();
 
             if (source is null)
             {
-                return ImageInputResult.Fail("Не удалось получить изображение из буфера обмена.");
+                return ImageInputResult.Fail(Loc.T("img_err_clipboard_read"));
             }
 
             var encoder = new PngBitmapEncoder();
@@ -82,7 +83,7 @@ public sealed class ImageInputService : IImageInputService
         catch (System.Runtime.InteropServices.ExternalException ex)
         {
             // Буфер обмена мог быть занят другой программой.
-            return ImageInputResult.Fail($"Буфер обмена сейчас недоступен: {ex.Message}");
+            return ImageInputResult.Fail(Loc.T("img_err_clipboard_busy", ex.Message));
         }
     }
 }

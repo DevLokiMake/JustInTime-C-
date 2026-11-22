@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -41,7 +42,7 @@ public static class RecipientParser
 
         if (text.Length == 0)
         {
-            return Fail("Укажите получателя.");
+            return Fail(Loc.T("rcp_empty"));
         }
 
         if (PhoneRegex.IsMatch(text))
@@ -49,30 +50,30 @@ public static class RecipientParser
             var digits = new string(text.Where(char.IsDigit).ToArray());
 
             return digits.Length is < MinPhoneDigits or > MaxPhoneDigits
-                ? Fail($"В номере должно быть от {MinPhoneDigits} до {MaxPhoneDigits} цифр в международном формате, например +77011234567.")
+                ? Fail(Loc.T("rcp_digits", MinPhoneDigits, MaxPhoneDigits))
                 : Ok(RecipientKind.Phone, "+" + digits);
         }
 
         if (NumberLikeRegex.IsMatch(text))
         {
-            return Fail("Номер нужно указывать в международном формате с плюсом, например +77011234567. Без кода страны получателя не определить.");
+            return Fail(Loc.T("rcp_plus"));
         }
 
         if (text.StartsWith('@'))
         {
             if (app == MessengerApp.WhatsApp)
             {
-                return Fail("В WhatsApp нет имён пользователей @. Укажите номер телефона или имя контакта.");
+                return Fail(Loc.T("rcp_wa_username"));
             }
 
             return UsernameRegex.IsMatch(text)
                 ? Ok(RecipientKind.Username, text)
-                : Fail("Имя пользователя Telegram: @ и от 5 до 32 символов (латинские буквы, цифры, _), начинается с буквы.");
+                : Fail(Loc.T("rcp_tg_username"));
         }
 
         return text.Any(char.IsLetter)
             ? Ok(RecipientKind.Name, text)
-            : Fail("Получатель не распознан. Укажите номер с плюсом, @имя или имя контакта.");
+            : Fail(Loc.T("rcp_unrecognized"));
     }
 
     private static RecipientParseResult Ok(RecipientKind kind, string value) =>

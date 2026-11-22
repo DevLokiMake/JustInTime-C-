@@ -80,7 +80,7 @@ public sealed partial class SettingsViewModel(
         {
             logger.LogError(ex, "Не удалось загрузить настройки");
             IsLoaded = false;
-            Show($"Не удалось загрузить настройки из PostgreSQL: {ex.Message}", true);
+            Show(Loc.T("set_load_failed", ex.Message), true);
         }
     }
 
@@ -89,7 +89,7 @@ public sealed partial class SettingsViewModel(
     {
         if (!int.TryParse(GraceMinutesText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var grace))
         {
-            Show("Допустимое опоздание нужно указать целым числом минут.", true);
+            Show(Loc.T("set_grace_not_number"), true);
             return;
         }
 
@@ -112,12 +112,12 @@ public sealed partial class SettingsViewModel(
             Loc.SetLanguage(SelectedLanguage?.Value ?? AppLanguage.Ru);
 
             var autostartError = ApplyAutostart();
-            Show(autostartError ?? "Настройки сохранены.", autostartError is not null);
+            Show(autostartError ?? Loc.T("set_saved"), autostartError is not null);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Не удалось сохранить настройки");
-            Show($"Не удалось сохранить настройки: {ex.Message}", true);
+            Show(Loc.T("set_save_failed", ex.Message), true);
         }
     }
 
@@ -126,7 +126,7 @@ public sealed partial class SettingsViewModel(
         var status = autostart.GetStatus();
         AutostartEnabled = status == AutostartStatus.On;
         AutostartNote = status == AutostartStatus.DisabledInWindows
-            ? "Автозапуск отключён в Параметрах Windows (Приложения, Автозагрузка). Если включить его здесь и сохранить, запись снова станет активной."
+            ? Loc.T("set_autostart_blocked")
             : null;
     }
 
@@ -151,7 +151,7 @@ public sealed partial class SettingsViewModel(
         {
             logger.LogError(ex, "Не удалось изменить автозапуск");
             LoadAutostart();
-            return $"Остальные настройки сохранены, но автозапуск не изменён: {ex.Message}";
+            return Loc.T("set_autostart_failed", ex.Message);
         }
     }
 

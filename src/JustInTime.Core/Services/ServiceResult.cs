@@ -1,3 +1,4 @@
+using JustInTime.Core.Localization;
 namespace JustInTime.Core.Services;
 
 /// <summary>
@@ -6,7 +7,7 @@ namespace JustInTime.Core.Services;
 /// </summary>
 public sealed class ServiceResult
 {
-    internal const string UnknownError = "Неизвестная ошибка.";
+    internal static string UnknownError => Loc.T("err_unknown");
 
     private ServiceResult(IReadOnlyList<string> errors, IReadOnlyList<string> warnings)
     {

@@ -5,6 +5,7 @@ using JustInTime.App.Services;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Services;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -25,7 +26,7 @@ public sealed partial class ImageToTextViewModel : ObservableObject
         _images = images;
         _logger = logger;
 
-        var languages = new List<Option<string?>> { new(null, "Автоматически") };
+        var languages = new List<Option<string?>> { new(null, Loc.T("img_auto")) };
 
         try
         {
@@ -147,7 +148,7 @@ public sealed partial class ImageToTextViewModel : ObservableObject
         }
 
         var error = _images.CopyText(text);
-        ShowStatus(error ?? "Текст скопирован в буфер обмена.", error is not null);
+        ShowStatus(error ?? Loc.T("img_copied"), error is not null);
     }
 
     private Task LoadAsync(ImageInputResult input)
@@ -159,7 +160,7 @@ public sealed partial class ImageToTextViewModel : ObservableObject
 
         if (input.Bytes is null)
         {
-            ShowStatus(input.Error ?? "Не удалось получить изображение.", true);
+            ShowStatus(input.Error ?? Loc.T("img_err_no_image"), true);
             return Task.CompletedTask;
         }
 
@@ -172,7 +173,7 @@ public sealed partial class ImageToTextViewModel : ObservableObject
     {
         var run = ++_runId;
         IsBusy = true;
-        ShowStatus("Распознаю текст...", false);
+        ShowStatus(Loc.T("img_recognizing"), false);
 
         try
         {
@@ -186,14 +187,13 @@ public sealed partial class ImageToTextViewModel : ObservableObject
             if (!result.Success)
             {
                 ResultText = string.Empty;
-                ShowStatus(result.Error ?? "Не удалось распознать текст.", true);
+                ShowStatus(result.Error ?? Loc.T("img_err_recognize"), true);
                 return;
             }
 
             ResultText = string.Join(Environment.NewLine, result.Lines);
             ShowStatus(
-                $"Язык: {result.Language}. Строк: {result.Lines.Count}. " +
-                "Проверьте текст: распознавание может ошибаться, особенно на мелком шрифте и фото под углом.",
+                Loc.T("img_result_info", result.Language, result.Lines.Count),
                 false);
         }
         catch (Exception ex)
@@ -202,7 +202,7 @@ public sealed partial class ImageToTextViewModel : ObservableObject
 
             if (run == _runId)
             {
-                ShowStatus($"Не удалось распознать текст: {ex.Message}", true);
+                ShowStatus(Loc.T("img_err_recognize_ex", ex.Message), true);
             }
         }
         finally

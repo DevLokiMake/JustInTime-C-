@@ -6,6 +6,7 @@ using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
 using Microsoft.Extensions.Logging;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.ViewModels;
 
@@ -42,9 +43,9 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
 
     public IReadOnlyList<Option<TaskFilter>> Filters { get; } =
     [
-        new(TaskFilter.Active, "Активные"),
-        new(TaskFilter.Finished, "Завершённые"),
-        new(TaskFilter.All, "Все")
+        new(TaskFilter.Active, Loc.T("filter_active")),
+        new(TaskFilter.Finished, Loc.T("filter_finished")),
+        new(TaskFilter.All, Loc.T("filter_all"))
     ];
 
     public ObservableCollection<TaskItemViewModel> Items { get; } = [];
@@ -95,12 +96,12 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
             return;
         }
 
-        if (!_dialogs.Confirm("Отмена задачи", $"Отменить задачу «{item.Title}»?"))
+        if (!_dialogs.Confirm(Loc.T("tasks_cancel_title"), Loc.T("tasks_cancel_confirm", item.Title)))
         {
             return;
         }
 
-        await RunAsync(() => _tasks.CancelAsync(item.Id), "отменить задачу");
+        await RunAsync(() => _tasks.CancelAsync(item.Id), Loc.T("desc_cancel_task"));
     }
 
     [RelayCommand]
@@ -113,14 +114,13 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
 
         if (item.RetryNeedsDuplicateWarning &&
             !_dialogs.Confirm(
-                "Повтор задачи",
-                $"Результат прошлой попытки задачи «{item.Title}» неизвестен: действие могло уже выполниться. " +
-                "Повтор может создать дубль, например отправить сообщение второй раз.\n\nПовторить всё равно?"))
+                Loc.T("tasks_retry_title"),
+                Loc.T("tasks_retry_confirm", item.Title)))
         {
             return;
         }
 
-        await RunAsync(() => _tasks.RetryAsync(item.Id), "повторить задачу");
+        await RunAsync(() => _tasks.RetryAsync(item.Id), Loc.T("desc_retry_task"));
     }
 
     private async Task RunAsync(Func<Task<ServiceResult>> operation, string description)
@@ -135,7 +135,7 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
         catch (Exception ex)
         {
             _logger.LogError(ex, "Не удалось {Action}", description);
-            ErrorMessage = $"Не удалось {description}: {ex.Message}";
+            ErrorMessage = Loc.T("op_failed", description, ex.Message);
         }
 
         await LoadAsync();
@@ -185,7 +185,7 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
             }
 
             _logger.LogError(ex, "Не удалось загрузить список задач");
-            ErrorMessage = $"Не удалось загрузить задачи из PostgreSQL: {ex.Message}";
+            ErrorMessage = Loc.T("tasks_load_failed", ex.Message);
         }
         finally
         {

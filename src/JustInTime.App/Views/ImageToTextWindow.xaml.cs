@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using JustInTime.App.ViewModels;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.App.Views;
 
@@ -47,7 +48,7 @@ public partial class ImageToTextWindow : Window
         }
         else
         {
-            ViewModel.Status = "Перетащите один файл изображения.";
+            ViewModel.Status = Loc.T("img_drop_one");
             ViewModel.StatusIsError = true;
         }
     }

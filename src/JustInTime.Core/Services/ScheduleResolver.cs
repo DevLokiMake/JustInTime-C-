@@ -1,4 +1,5 @@
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Core.Services;
 
@@ -22,7 +23,7 @@ public static class ScheduleResolver
                 if (delay.Minutes < 1 || delay.Minutes > MaxDelayMinutes)
                 {
                     return ServiceResult<ResolvedSchedule>.Fail(
-                        $"Задержка должна быть от 1 до {MaxDelayMinutes} минут.");
+                        Loc.T("sch_delay", MaxDelayMinutes));
                 }
 
                 return ServiceResult<ResolvedSchedule>.Ok(
@@ -32,7 +33,7 @@ public static class ScheduleResolver
                 return ResolveLocalTime(atTime, nowUtc, localZone);
 
             default:
-                return ServiceResult<ResolvedSchedule>.Fail("Не указано время выполнения.");
+                return ServiceResult<ResolvedSchedule>.Fail(Loc.T("sch_missing"));
         }
     }
 
@@ -49,7 +50,7 @@ public static class ScheduleResolver
             }
             catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
             {
-                return ServiceResult<ResolvedSchedule>.Fail($"Неизвестный часовой пояс: {schedule.TimeZoneId}.");
+                return ServiceResult<ResolvedSchedule>.Fail(Loc.T("sch_zone", schedule.TimeZoneId));
             }
         }
 
@@ -58,7 +59,7 @@ public static class ScheduleResolver
         if (zone.IsInvalidTime(local))
         {
             return ServiceResult<ResolvedSchedule>.Fail(
-                "Этого времени не существует из-за перехода на летнее время. Выберите другое.");
+                Loc.T("sch_dst_gap"));
         }
 
         DateTime utc;
@@ -76,7 +77,7 @@ public static class ScheduleResolver
 
         if (utc <= nowUtc)
         {
-            return ServiceResult<ResolvedSchedule>.Fail("Время выполнения должно быть в будущем.");
+            return ServiceResult<ResolvedSchedule>.Fail(Loc.T("sch_past"));
         }
 
         return ServiceResult<ResolvedSchedule>.Ok(new ResolvedSchedule(utc, zone.Id));
