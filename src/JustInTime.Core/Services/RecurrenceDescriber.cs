@@ -13,6 +13,10 @@ public static class RecurrenceDescriber
         DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
     ];
 
+    // Явные ключи по номеру DayOfWeek (0 = воскресенье): так тест на ключи видит каждый из них.
+    private static readonly string[] DayKeys =
+        ["wds_0", "wds_1", "wds_2", "wds_3", "wds_4", "wds_5", "wds_6"];
+
     public static string Describe(RecurrenceRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);
@@ -27,7 +31,7 @@ public static class RecurrenceDescriber
             RecurrenceKind.Daily => rule.Every == 1 ? Loc.T("rec_daily_1", time) : Loc.T("rec_daily_n", rule.Every, time),
             RecurrenceKind.Weekly => Loc.T(
                 "rec_weekly",
-                string.Join(", ", WeekOrder.Where(rule.Includes).Select(d => Loc.T("wds_" + (int)d))),
+                string.Join(", ", WeekOrder.Where(rule.Includes).Select(d => Loc.T(DayKeys[(int)d]))),
                 time),
             RecurrenceKind.Monthly => rule.Every == 1
                 ? Loc.T("rec_monthly_1", rule.DayOfMonth, time)
