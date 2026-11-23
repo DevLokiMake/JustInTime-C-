@@ -1,4 +1,5 @@
 using Windows.Devices.Radios;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -26,19 +27,19 @@ public sealed class WindowsRadioService : IRadioService
             if (adapters.Count == 0)
             {
                 return RadioSwitchResult.Error(
-                    RadioSwitchStatus.NoAdapter, $"В компьютере не найден адаптер {name}.");
+                    RadioSwitchStatus.NoAdapter, Loc.T("radio_none", name));
             }
 
             if (adapters.All(a => IsSatisfied(a.State, target)))
             {
-                return RadioSwitchResult.Done($"{name} уже в нужном состоянии.");
+                return RadioSwitchResult.Done(Loc.T("radio_already", name));
             }
 
             if (enable && adapters.Any(a => a.State == RadioState.Disabled))
             {
                 return RadioSwitchResult.Error(
                     RadioSwitchStatus.Blocked,
-                    $"Адаптер {name} отключён системой (аппаратный переключатель, авиарежим или политика), включить его программно нельзя.");
+                    Loc.T("radio_disabled", name));
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -49,8 +50,7 @@ public sealed class WindowsRadioService : IRadioService
             {
                 return RadioSwitchResult.Error(
                     RadioSwitchStatus.AccessDenied,
-                    $"Windows не разрешила приложению менять {name} ({access}). " +
-                    "Проверьте Параметры Windows, Конфиденциальность и безопасность, Радиомодули, и политики организации.");
+                    Loc.T("radio_denied", name, access));
             }
 
             foreach (var adapter in adapters.Where(a => !IsSatisfied(a.State, target)))
@@ -63,7 +63,7 @@ public sealed class WindowsRadioService : IRadioService
                 {
                     return RadioSwitchResult.Error(
                         RadioSwitchStatus.AccessDenied,
-                        $"Windows отклонила изменение {name} ({status}).");
+                        Loc.T("radio_rejected", name, status));
                 }
             }
 
@@ -75,7 +75,7 @@ public sealed class WindowsRadioService : IRadioService
         }
         catch (Exception ex)
         {
-            return RadioSwitchResult.Error(RadioSwitchStatus.Failed, $"Не удалось переключить {name}: {ex.Message}");
+            return RadioSwitchResult.Error(RadioSwitchStatus.Failed, Loc.T("radio_failed", name, ex.Message));
         }
     }
 
@@ -97,8 +97,7 @@ public sealed class WindowsRadioService : IRadioService
             {
                 return RadioSwitchResult.Error(
                     RadioSwitchStatus.NotConfirmed,
-                    $"Запрос на изменение {name} принят, но состояние не изменилось за {ConfirmTimeout.TotalSeconds:0} с. " +
-                    "Возможно, переключение блокирует аппаратный переключатель или политика.");
+                    Loc.T("radio_timeout", name, ConfirmTimeout.TotalSeconds.ToString("0")));
             }
 
             await Task.Delay(PollInterval, cancellationToken);

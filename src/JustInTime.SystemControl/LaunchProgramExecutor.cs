@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -30,7 +31,7 @@ public sealed class LaunchProgramExecutor : ActionExecutor<LaunchProgramPayload>
             {
                 if (!File.Exists(payload.ProgramPath))
                 {
-                    return Task.FromResult(ExecutionOutcome.Failed($"Файл не найден: {payload.ProgramPath}"));
+                    return Task.FromResult(ExecutionOutcome.Failed(Loc.T("sys_file_missing", payload.ProgramPath)));
                 }
 
                 startInfo.WorkingDirectory = Path.GetDirectoryName(payload.ProgramPath) ?? string.Empty;
@@ -42,7 +43,7 @@ public sealed class LaunchProgramExecutor : ActionExecutor<LaunchProgramPayload>
         }
         catch (Win32Exception ex)
         {
-            return Task.FromResult(ExecutionOutcome.Failed($"Не удалось запустить программу: {ex.Message}"));
+            return Task.FromResult(ExecutionOutcome.Failed(Loc.T("sys_launch_failed", ex.Message)));
         }
     }
 }

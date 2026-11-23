@@ -1,5 +1,6 @@
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Messaging;
 
@@ -19,8 +20,8 @@ public enum SendStatus
 
 public sealed record SendResult(SendStatus Status, string Message)
 {
-    public static SendResult Sent(string message = "Приложение приняло команду отправки. Доставка получателю не проверяется.") =>
-        new(SendStatus.Sent, message);
+    public static SendResult Sent(string? message = null) =>
+        new(SendStatus.Sent, message ?? Loc.T("msg_sent_default"));
 
     public static SendResult NotSent(string message) => new(SendStatus.NotSent, message);
 

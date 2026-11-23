@@ -1,3 +1,4 @@
+using JustInTime.Core.Localization;
 namespace JustInTime.Scheduler;
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError)
@@ -11,7 +12,7 @@ public sealed record ProcessResult(int ExitCode, string StandardOutput, string S
         {
             var text = string.IsNullOrWhiteSpace(StandardError) ? StandardOutput : StandardError;
             text = text.Trim();
-            return text.Length > 0 ? text : $"код выхода {ExitCode}";
+            return text.Length > 0 ? text : Loc.T("proc_exit_code", ExitCode);
         }
     }
 }

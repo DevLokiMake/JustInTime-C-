@@ -1,5 +1,6 @@
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Messaging;
 
@@ -27,29 +28,29 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
 
         if (!parsed.IsValid)
         {
-            return ExecutionOutcome.Failed("Получатель задан неверно: " + parsed.Error);
+            return ExecutionOutcome.Failed(Loc.T("msg_bad_recipient", parsed.Error));
         }
 
         if (string.IsNullOrWhiteSpace(payload.Text))
         {
-            return ExecutionOutcome.Failed("Текст сообщения пустой.");
+            return ExecutionOutcome.Failed(Loc.T("msg_text_empty"));
         }
 
         if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
         {
             return ExecutionOutcome.Failed(
-                "Многострочные сообщения пока не поддерживаются (Enter отправил бы сообщение раньше времени). Сообщение не отправлено, уберите переносы строк.");
+                Loc.T("msg_multiline"));
         }
 
         if (!_adapters.TryGetValue(payload.App, out var adapter))
         {
             return ExecutionOutcome.Failed(
-                $"Отправка через {payload.App} пока не поддерживается в этой версии приложения. Сообщение не отправлено.");
+                Loc.T("msg_app_unsupported", payload.App));
         }
 
         if (!network.IsAvailable)
         {
-            return ExecutionOutcome.WaitForNetwork("Нет подключения к интернету. Сообщение не отправлено, задача подождёт.");
+            return ExecutionOutcome.WaitForNetwork(Loc.T("msg_no_network"));
         }
 
         SendResult result;
@@ -66,7 +67,7 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
         catch (Exception ex)
         {
             return ExecutionOutcome.Unknown(
-                $"Сбой адаптера {payload.App}: {ex.Message} Неизвестно, ушло ли сообщение. Проверьте чат вручную.");
+                Loc.T("msg_adapter_crash", payload.App, ex.Message));
         }
 
         return result.Status switch
@@ -76,8 +77,8 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
                 : ExecutionOutcome.Success(),
             SendStatus.NotSent => ExecutionOutcome.Failed(result.Message),
             SendStatus.Uncertain => ExecutionOutcome.Unknown(
-                result.Message + " Проверьте чат вручную: автоматически сообщение повторно не отправляется."),
-            _ => ExecutionOutcome.Unknown("Адаптер вернул неизвестный результат. Проверьте чат вручную.")
+                result.Message + Loc.T("msg_uncertain_suffix")),
+            _ => ExecutionOutcome.Unknown(Loc.T("msg_unknown_result"))
         };
     }
 }

@@ -6,6 +6,7 @@ using Windows.Globalization;
 using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage.Streams;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -30,7 +31,7 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
 
         if (image.Length == 0)
         {
-            return TextRecognitionResult.Fail("Изображение пустое.");
+            return TextRecognitionResult.Fail(Loc.T("ocr_empty"));
         }
 
         try
@@ -39,14 +40,13 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
 
             if (engine is null && languageTag is not null)
             {
-                return TextRecognitionResult.Fail($"Язык «{languageTag}» для распознавания в Windows не установлен.");
+                return TextRecognitionResult.Fail(Loc.T("ocr_lang_missing", languageTag));
             }
 
             if (engine is null)
             {
                 return TextRecognitionResult.Fail(
-                    "В Windows не установлен язык для распознавания текста. Откройте Параметры, Время и язык, " +
-                    "Язык и регион, добавьте язык (например, русский) и отметьте компонент «Распознавание текста».");
+                    Loc.T("ocr_no_langs"));
             }
 
             using var bitmap = await DecodeAsync(image, cancellationToken);
@@ -55,7 +55,7 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
             var recognized = TextRecognitionResult.Ok(result.Lines.Select(l => l.Text), engine.RecognizerLanguage.DisplayName);
 
             return recognized.Text.Length == 0
-                ? TextRecognitionResult.Fail("Текст на изображении не найден. Попробуйте более чёткий снимок или крупнее.")
+                ? TextRecognitionResult.Fail(Loc.T("ocr_nothing"))
                 : recognized;
         }
         catch (OperationCanceledException)
@@ -64,7 +64,7 @@ public sealed class WindowsTextRecognizer : ITextRecognizer
         }
         catch (Exception ex)
         {
-            return TextRecognitionResult.Fail($"Не удалось распознать изображение: {ex.Message}");
+            return TextRecognitionResult.Fail(Loc.T("ocr_failed", ex.Message));
         }
     }
 

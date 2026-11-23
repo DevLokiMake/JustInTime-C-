@@ -1,6 +1,7 @@
 using JustInTime.Automation;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Messaging;
 
@@ -43,7 +44,7 @@ public sealed class TelegramDesktopAdapter(
                 break;
             default:
                 return SendResult.NotSent(
-                    "Для Telegram укажите номер телефона с плюсом или @username: по имени контакта получатель не определяется однозначно.");
+                    Loc.T("msg_tg_need_phone_or_username"));
         }
 
         return await Task.Run(() => SendCoreAsync(request.Text, link, cancellationToken), cancellationToken);
@@ -74,7 +75,7 @@ public sealed class TelegramDesktopAdapter(
             if (existing.Length > 0)
             {
                 return SendResult.NotSent(
-                    $"В поле Telegram уже есть текст (символов: {existing.Length}). Он не изменён; очистите черновик и повторите задачу.");
+                    Loc.T("msg_field_not_empty", "Telegram", existing.Length));
             }
 
             field.SetValue(text);
@@ -82,7 +83,7 @@ public sealed class TelegramDesktopAdapter(
 
             if (!string.Equals(field.GetValue(), text, StringComparison.Ordinal))
             {
-                return NotSentAfterCleanup(field, text, "Не удалось проверить текст в поле Telegram до отправки.");
+                return NotSentAfterCleanup(field, text, Loc.T("msg_verify_failed", "Telegram"));
             }
 
             var buttonSearch = await WaitForSendButtonAsync(window, cancellationToken);
@@ -98,18 +99,17 @@ public sealed class TelegramDesktopAdapter(
             if (await WaitForComposerToClearAsync(field, cancellationToken))
             {
                 return SendResult.Sent(
-                    "Telegram очистил поле после нажатия «Отправить». Доставка получателю не проверяется.");
+                    Loc.T("msg_cleared_after_send", "Telegram"));
             }
 
             return SendResult.Uncertain(
-                "Кнопка отправки нажата, но Telegram не подтвердил очистку поля. " +
-                "Проверьте чат вручную; задача не будет отправлена повторно автоматически.");
+                Loc.T("msg_not_confirmed", "Telegram"));
         }
         catch (OperationCanceledException) when (!sendWasAttempted)
         {
             var cleanup = composer is null ? null : ClearDraftIfUnchanged(composer, text);
             return SendResult.NotSent(AppendCleanup(
-                "Выполнение отменено до нажатия кнопки отправки; сообщение не отправлено.", cleanup));
+                Loc.T("msg_cancelled_before"), cleanup));
         }
         catch (OperationCanceledException)
         {
@@ -120,12 +120,11 @@ public sealed class TelegramDesktopAdapter(
             if (sendWasAttempted)
             {
                 return SendResult.Uncertain(
-                    $"Сбой после нажатия кнопки отправки: {ex.Message} " +
-                    "Неизвестно, ушло ли сообщение. Проверьте чат вручную; автоматического повтора не будет.");
+                    Loc.T("msg_failure_after_click", ex.Message));
             }
 
             var cleanup = composer is null ? null : ClearDraftIfUnchanged(composer, text);
-            return SendResult.NotSent(AppendCleanup($"Telegram не отправил сообщение: {ex.Message}", cleanup));
+            return SendResult.NotSent(AppendCleanup(Loc.T("msg_not_sent_ex", "Telegram", ex.Message), cleanup));
         }
     }
 
@@ -140,7 +139,7 @@ public sealed class TelegramDesktopAdapter(
         var reopens = 0;
         string? lastTitle = null;
         DateTimeOffset stableSince = default;
-        var error = "Окно Telegram Desktop не найдено. Откройте и авторизуйте Telegram.";
+        var error = Loc.T("msg_tg_window_missing");
 
         while (true)
         {
@@ -152,7 +151,7 @@ public sealed class TelegramDesktopAdapter(
 
             if (candidates.Count > 1)
             {
-                return new ComposerSearch(null, "Найдено несколько окон Telegram. Отправка остановлена.");
+                return new ComposerSearch(null, Loc.T("msg_tg_many_windows"));
             }
 
             if (candidates.Count == 1)
@@ -165,7 +164,7 @@ public sealed class TelegramDesktopAdapter(
 
                 if (composers.Count > 1)
                 {
-                    return new ComposerSearch(null, "Найдено несколько полей ввода Telegram. Отправка остановлена.");
+                    return new ComposerSearch(null, Loc.T("msg_tg_many_fields"));
                 }
 
                 if (composers.Count == 1)
@@ -183,12 +182,12 @@ public sealed class TelegramDesktopAdapter(
                         return new ComposerSearch(new ComposerMatch(window.Window, composers[0]), null);
                     }
 
-                    error = "Окно Telegram не успокоилось: чат продолжает переключаться.";
+                    error = Loc.T("msg_tg_not_settled");
                 }
                 else
                 {
                     lastTitle = null;
-                    error = "Не найдено поле ввода Telegram. Откройте окно Telegram и повторите.";
+                    error = Loc.T("msg_tg_no_field");
                 }
             }
 
@@ -230,7 +229,7 @@ public sealed class TelegramDesktopAdapter(
 
             if (buttons.Count > 1)
             {
-                return new ButtonSearch(null, "Кнопка отправки неоднозначна; сообщение не отправлено.");
+                return new ButtonSearch(null, Loc.T("msg_button_ambiguous"));
             }
 
             if (time.GetUtcNow() >= deadline)
@@ -238,13 +237,13 @@ public sealed class TelegramDesktopAdapter(
                 var seen = UiSearch.FindAll(
                         window, new ElementQuery(ControlType: "Button"), maxDepth: 20, maxNodes: 20000)
                     .Where(b => b.ClassName.EndsWith("Ui::SendButton", StringComparison.Ordinal))
-                    .Select(b => $"«{b.Name}»{(b.IsEnabled ? string.Empty : " (недоступна)")}")
+                    .Select(b => $"«{b.Name}»{(b.IsEnabled ? string.Empty : Loc.T("msg_button_unavailable"))}")
                     .ToList();
                 var hint = seen.Count == 0
-                    ? " Кнопка отправки в окне не найдена."
-                    : $" Найдена кнопка отправки с именем {string.Join(", ", seen)}.";
+                    ? Loc.T("msg_button_hint_none")
+                    : Loc.T("msg_button_hint_seen", string.Join(", ", seen));
 
-                return new ButtonSearch(null, "Кнопка «Отправить» не найдена; сообщение не отправлено." + hint);
+                return new ButtonSearch(null, Loc.T("msg_button_missing") + hint);
             }
 
             await Task.Delay(PollInterval, time, cancellationToken);
@@ -288,11 +287,11 @@ public sealed class TelegramDesktopAdapter(
             field.SetValue(string.Empty);
             return field.GetValue().Length == 0
                 ? null
-                : "Поле Telegram не удалось очистить; проверьте оставшийся черновик.";
+                : Loc.T("msg_clear_failed", "Telegram");
         }
         catch (UiAutomationException ex)
         {
-            return $"Поле Telegram не удалось очистить: {ex.Message}";
+            return Loc.T("msg_clear_failed_ex", "Telegram", ex.Message);
         }
     }
 

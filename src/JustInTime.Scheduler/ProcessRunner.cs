@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Scheduler;
 
@@ -39,7 +40,7 @@ public sealed class ProcessRunner : IProcessRunner
         }
         catch (Win32Exception ex)
         {
-            throw new InvalidOperationException($"Не удалось запустить {fileName}: {ex.Message}", ex);
+            throw new InvalidOperationException(Loc.T("proc_start_failed", fileName, ex.Message), ex);
         }
 
         // Оба потока читаем параллельно, иначе заполненный буфер одного из них подвесит процесс.
@@ -63,7 +64,7 @@ public sealed class ProcessRunner : IProcessRunner
                 throw;
             }
 
-            throw new TimeoutException($"{fileName} не ответил за {timeout.TotalSeconds:0} с.");
+            throw new TimeoutException(Loc.T("proc_timeout", fileName, timeout.TotalSeconds.ToString("0")));
         }
     }
 

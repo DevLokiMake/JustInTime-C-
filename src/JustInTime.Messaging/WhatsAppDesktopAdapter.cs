@@ -1,6 +1,7 @@
 using JustInTime.Automation;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Messaging;
 
@@ -23,14 +24,14 @@ public sealed class WhatsAppDesktopAdapter(
     {
         if (request.Recipient.Kind != RecipientKind.Phone)
         {
-            return SendResult.NotSent("Для WhatsApp укажите номер телефона в международном формате.");
+            return SendResult.NotSent(Loc.T("msg_wa_phone_only"));
         }
 
         var phoneDigits = Digits(request.Recipient.Value);
 
         if (phoneDigits.Length is < RecipientParser.MinPhoneDigits or > RecipientParser.MaxPhoneDigits)
         {
-            return SendResult.NotSent("Номер WhatsApp имеет неверную длину.");
+            return SendResult.NotSent(Loc.T("msg_wa_bad_length"));
         }
 
         return await Task.Run(
@@ -63,7 +64,7 @@ public sealed class WhatsAppDesktopAdapter(
             if (Normalize(existing).Length > 0)
             {
                 return SendResult.NotSent(
-                    $"В поле WhatsApp уже есть текст (символов: {existing.Length}). Он не изменён; очистите черновик и повторите задачу.");
+                    Loc.T("msg_field_not_empty", "WhatsApp", existing.Length));
             }
 
             var entered = await EnterTextAsync(field, text, cancellationToken);
@@ -86,17 +87,16 @@ public sealed class WhatsAppDesktopAdapter(
             if (await WaitForComposerToClearAsync(field, cancellationToken))
             {
                 return SendResult.Sent(
-                    "WhatsApp очистил поле после нажатия «Отправить». Доставка получателю не проверяется.");
+                    Loc.T("msg_cleared_after_send", "WhatsApp"));
             }
 
             return SendResult.Uncertain(
-                "Кнопка отправки нажата, но WhatsApp не подтвердил очистку поля. " +
-                "Проверьте чат вручную; задача не будет отправлена повторно автоматически.");
+                Loc.T("msg_not_confirmed", "WhatsApp"));
         }
         catch (OperationCanceledException) when (!sendWasAttempted)
         {
             var cleanup = composer is null ? null : ClearDraftIfUnchanged(composer, text);
-            var message = "Выполнение отменено до нажатия кнопки отправки; сообщение не отправлено.";
+            var message = Loc.T("msg_cancelled_before");
             return SendResult.NotSent(AppendCleanupMessage(message, cleanup));
         }
         catch (OperationCanceledException)
@@ -108,12 +108,11 @@ public sealed class WhatsAppDesktopAdapter(
             if (sendWasAttempted)
             {
                 return SendResult.Uncertain(
-                    $"Сбой после нажатия кнопки отправки: {ex.Message} " +
-                    "Неизвестно, ушло ли сообщение. Проверьте чат вручную; автоматического повтора не будет.");
+                    Loc.T("msg_failure_after_click", ex.Message));
             }
 
             var cleanup = composer is null ? null : ClearDraftIfUnchanged(composer, text);
-            var message = $"WhatsApp не отправил сообщение: {ex.Message}";
+            var message = Loc.T("msg_not_sent_ex", "WhatsApp", ex.Message);
             return SendResult.NotSent(AppendCleanupMessage(message, cleanup));
         }
     }
@@ -123,7 +122,7 @@ public sealed class WhatsAppDesktopAdapter(
         var deadline = time.GetUtcNow() + ComposerTimeout;
         var lastLaunch = time.GetUtcNow();
         var reopens = 0;
-        string lastError = "Окно WhatsApp Desktop не найдено. Откройте и авторизуйте WhatsApp.";
+        string lastError = Loc.T("msg_wa_window_missing");
 
         while (true)
         {
@@ -133,7 +132,7 @@ public sealed class WhatsAppDesktopAdapter(
 
             if (appWindows.Count > 0)
             {
-                lastError = "Не найдено поле ввода чата WhatsApp. Откройте нужный чат и повторите.";
+                lastError = Loc.T("msg_wa_no_field");
                 var composers = appWindows
                     .SelectMany(window => FindComposers(window)
                         .Select(field => new ComposerMatch(window, field)))
@@ -150,12 +149,12 @@ public sealed class WhatsAppDesktopAdapter(
                 if (matching.Count > 1)
                 {
                     return new ComposerSearch(
-                        null, "Найдено несколько подходящих чатов WhatsApp. Отправка остановлена.");
+                        null, Loc.T("msg_wa_many_chats"));
                 }
 
                 if (composers.Count > 0)
                 {
-                    lastError = "Открытый чат не совпадает с номером получателя. Сообщение не отправлено.";
+                    lastError = Loc.T("msg_wa_wrong_chat");
                 }
             }
 
@@ -236,8 +235,7 @@ public sealed class WhatsAppDesktopAdapter(
             }
             catch (UiAutomationException ex)
             {
-                return $"Запись через Value не сработала{(setError is null ? string.Empty : " (" + setError + ")")}, " +
-                       $"ввод с клавиатуры тоже: {ex.Message}";
+                return Loc.T("msg_wa_value_failed", setError is null ? string.Empty : " (" + setError + ")", ex.Message);
             }
 
             await Task.Delay(SettleDelay, time, cancellationToken);
@@ -250,8 +248,7 @@ public sealed class WhatsAppDesktopAdapter(
             current = Normalize(field.GetValue());
         }
 
-        return $"Не удалось проверить текст в поле WhatsApp до отправки (ожидалось символов: {Normalize(text).Length}, " +
-               $"в поле: {current.Length}).";
+        return Loc.T("msg_verify_failed_counts", "WhatsApp", Normalize(text).Length, current.Length);
     }
 
     private static bool Matches(IUiElement field, string text) =>
@@ -282,12 +279,12 @@ public sealed class WhatsAppDesktopAdapter(
 
             if (buttons.Count > 1)
             {
-                return new ButtonSearch(null, "Кнопка отправки неоднозначна; сообщение не отправлено.");
+                return new ButtonSearch(null, Loc.T("msg_button_ambiguous"));
             }
 
             if (time.GetUtcNow() >= deadline)
             {
-                return new ButtonSearch(null, "Кнопка «Отправить» не найдена; сообщение не отправлено.");
+                return new ButtonSearch(null, Loc.T("msg_button_missing"));
             }
 
             await Task.Delay(PollInterval, time, cancellationToken);
@@ -331,11 +328,11 @@ public sealed class WhatsAppDesktopAdapter(
             field.SetValue(string.Empty);
             return Normalize(field.GetValue()).Length == 0
                 ? null
-                : "Поле WhatsApp не удалось очистить; проверьте оставшийся черновик.";
+                : Loc.T("msg_clear_failed", "WhatsApp");
         }
         catch (UiAutomationException ex)
         {
-            return $"Поле WhatsApp не удалось очистить: {ex.Message}";
+            return Loc.T("msg_clear_failed_ex", "WhatsApp", ex.Message);
         }
     }
 

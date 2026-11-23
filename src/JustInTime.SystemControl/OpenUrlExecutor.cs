@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -16,7 +17,7 @@ public sealed class OpenUrlExecutor : ActionExecutor<OpenUrlPayload>
         if (!Uri.TryCreate(payload.Url, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return Task.FromResult(ExecutionOutcome.Failed("Разрешены только ссылки http и https."));
+            return Task.FromResult(ExecutionOutcome.Failed(Loc.T("sys_url_scheme")));
         }
 
         try
@@ -30,7 +31,7 @@ public sealed class OpenUrlExecutor : ActionExecutor<OpenUrlPayload>
         catch (Win32Exception ex)
         {
             return Task.FromResult(ExecutionOutcome.Failed(
-                $"Windows не смогла открыть ссылку (возможно, не настроен браузер по умолчанию): {ex.Message}"));
+                Loc.T("sys_url_failed", ex.Message)));
         }
     }
 }

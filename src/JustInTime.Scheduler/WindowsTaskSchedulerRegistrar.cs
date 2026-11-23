@@ -1,6 +1,7 @@
 using System.Text;
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.Scheduler;
 
@@ -29,7 +30,7 @@ public sealed class WindowsTaskSchedulerRegistrar(
             if (!File.Exists(options.ExecutablePath))
             {
                 return RegistrationResult.Fail(
-                    $"Не найден исполняемый файл приложения: {options.ExecutablePath}.");
+                    Loc.T("reg_no_exe", options.ExecutablePath));
             }
 
             var xml = TaskXmlBuilder.Build(
@@ -123,7 +124,7 @@ public sealed class WindowsTaskSchedulerRegistrar(
             }
             else
             {
-                errors.Add($"Задача «{task.Title}»: {result.Error}");
+                errors.Add(Loc.T("reg_task_error", task.Title, result.Error));
             }
         }
 
@@ -151,7 +152,7 @@ public sealed class WindowsTaskSchedulerRegistrar(
                     }
                     else
                     {
-                        errors.Add($"Не удалось удалить лишний запуск {id:D}: {result.Error}");
+                        errors.Add(Loc.T("reg_remove_failed", id.ToString("D"), result.Error));
                     }
                 }
             }
@@ -171,7 +172,7 @@ public sealed class WindowsTaskSchedulerRegistrar(
 
             if (!result.Succeeded)
             {
-                return (Array.Empty<Guid>(), "Не удалось получить список заданий Планировщика: " + result.ErrorText);
+                return (Array.Empty<Guid>(), Loc.T("reg_list_failed", result.ErrorText));
             }
 
             return (ParseRegisteredIds(result.StandardOutput, options.FolderName, options.TaskNamePrefix), null);
@@ -182,7 +183,7 @@ public sealed class WindowsTaskSchedulerRegistrar(
         }
         catch (Exception ex)
         {
-            return (Array.Empty<Guid>(), "Не удалось получить список заданий Планировщика: " + ex.Message);
+            return (Array.Empty<Guid>(), Loc.T("reg_list_failed", ex.Message));
         }
     }
 

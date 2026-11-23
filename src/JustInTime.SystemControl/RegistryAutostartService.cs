@@ -1,6 +1,7 @@
 using JustInTime.Core.Interfaces;
 using JustInTime.Core.Models;
 using Microsoft.Win32;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -70,12 +71,12 @@ public sealed class RegistryAutostartService : IAutostartService
             if (string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    "Автозапуск можно включить только у собранной программы JustInTime.exe, а не у запуска через dotnet.");
+                    Loc.T("sys_autostart_exe"));
             }
 
             if (!File.Exists(_executablePath))
             {
-                throw new InvalidOperationException($"Не найден файл программы: {_executablePath}");
+                throw new InvalidOperationException(Loc.T("sys_autostart_nofile", _executablePath));
             }
         }
 
@@ -101,7 +102,7 @@ public sealed class RegistryAutostartService : IAutostartService
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
-            throw new InvalidOperationException($"Не удалось изменить автозапуск в реестре: {ex.Message}", ex);
+            throw new InvalidOperationException(Loc.T("sys_autostart_registry", ex.Message), ex);
         }
     }
 }

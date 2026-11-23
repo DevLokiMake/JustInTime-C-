@@ -1,5 +1,6 @@
 using JustInTime.Core.Models;
 using JustInTime.Core.Services;
+using JustInTime.Core.Localization;
 
 namespace JustInTime.SystemControl;
 
@@ -24,19 +25,19 @@ public sealed class SystemSettingExecutor(IRadioService radios) : ActionExecutor
 
             case SystemSettingKind.AirplaneMode:
                 return ExecutionOutcome.Failed(
-                    "Авиарежим в Windows не поддерживается: у системы нет официального способа переключить его из обычного приложения.");
+                    Loc.T("sys_airplane_unsupported"));
 
             case SystemSettingKind.MobileData:
                 return ExecutionOutcome.Failed(
-                    "Мобильный интернет в Windows не поддерживается: у системы нет официального способа переключить его из обычного приложения.");
+                    Loc.T("sys_mobile_unsupported"));
 
             default:
-                return ExecutionOutcome.Failed("Неизвестная системная настройка.");
+                return ExecutionOutcome.Failed(Loc.T("sys_unknown_setting"));
         }
     }
 
     private static ExecutionOutcome Map(RadioSwitchResult result) =>
         result.Status == RadioSwitchStatus.Done
             ? ExecutionOutcome.Success()
-            : ExecutionOutcome.Failed(result.Message ?? "Не удалось переключить адаптер.");
+            : ExecutionOutcome.Failed(result.Message ?? Loc.T("sys_adapter_failed"));
 }
