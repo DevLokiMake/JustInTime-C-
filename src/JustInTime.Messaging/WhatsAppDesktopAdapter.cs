@@ -67,11 +67,23 @@ public sealed class WhatsAppDesktopAdapter(
                     Loc.T("msg_field_not_empty", "WhatsApp", existing.Length));
             }
 
-            var entered = await EnterTextAsync(field, text, cancellationToken);
-
-            if (entered is not null)
+            if (text.Contains('\n'))
             {
-                return NotSentAfterCleanup(field, text, entered);
+                var failure = await EnterMultilineAsync(field, text, cancellationToken);
+
+                if (failure is not null)
+                {
+                    return failure;
+                }
+            }
+            else
+            {
+                var entered = await EnterTextAsync(field, text, cancellationToken);
+
+                if (entered is not null)
+                {
+                    return NotSentAfterCleanup(field, text, entered);
+                }
             }
 
             var buttonSearch = await WaitForSendButtonAsync(window.Window, cancellationToken);
@@ -251,6 +263,27 @@ public sealed class WhatsAppDesktopAdapter(
         return Loc.T("msg_verify_failed_counts", "WhatsApp", Normalize(text).Length, current.Length);
     }
 
+    /// <summary>
+    /// Многострочный текст вводится только с клавиатуры: перенос строки это Shift+Enter, обычный Enter отправил бы
+    /// сообщение. Запись через Value здесь не используется. Если после ввода текст в поле не совпал, нельзя исключить,
+    /// что Enter сработал как отправка, поэтому результат неопределённый, а не «не отправлено».
+    /// </summary>
+    private async Task<SendResult?> EnterMultilineAsync(IUiElement field, string text, CancellationToken cancellationToken)
+    {
+        try
+        {
+            field.TypeText(text);
+        }
+        catch (UiAutomationException ex)
+        {
+            return NotSentAfterCleanup(field, text, Loc.T("msg_multiline_type_failed", ex.Message));
+        }
+
+        await Task.Delay(SettleDelay, time, cancellationToken);
+
+        return Matches(field, text) ? null : SendResult.Uncertain(Loc.T("msg_multiline_mismatch", "WhatsApp"));
+    }
+
     private static bool Matches(IUiElement field, string text) =>
         string.Equals(Normalize(field.GetValue()), Normalize(text), StringComparison.Ordinal);
 
@@ -354,9 +387,7 @@ public sealed class WhatsAppDesktopAdapter(
     /// Поле ввода WhatsApp (contenteditable в WebView2) может отдавать «пустое» значение как перевод строки,
     /// неразрывный пробел или невидимый символ нулевой ширины. Для проверок «пусто» и «совпадает» такие символы не считаются.
     /// </summary>
-    private static string Normalize(string value) =>
-        new string(value.Where(c => c is not ('\u200B' or '\u200C' or '\u200D' or '\uFEFF' or '\u00A0')).ToArray())
-            .Trim();
+    private static string Normalize(string value) => ComposerText.Canonical(value);
 
     private static string Digits(string value) => new(value.Where(char.IsAsciiDigit).ToArray());
 

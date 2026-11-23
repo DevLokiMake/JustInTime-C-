@@ -428,5 +428,7 @@ public static partial class Strings
         ["reg_task_error"] = "Task “{0}”: {1}",
         ["reg_remove_failed"] = "Could not remove the extra launch {0}: {1}",
         ["reg_list_failed"] = "Could not get the Task Scheduler job list: {0}",
+        ["msg_multiline_type_failed"] = "Could not type the multi-line text from the keyboard: {0}",
+        ["msg_multiline_mismatch"] = "After typing the multi-line text, the {0} field does not contain the expected text. Enter may have acted as send and part of the message may already have gone out. Check the chat and clear the draft manually; the message is not resent automatically.",
     };
 }

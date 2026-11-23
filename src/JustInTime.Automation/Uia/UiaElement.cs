@@ -95,9 +95,11 @@ public sealed class UiaElement(AutomationElement element) : IUiElement
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        if (text.Any(char.IsControl))
+        text = text.ReplaceLineEndings("\n");
+
+        if (text.Any(c => c != '\n' && char.IsControl(c)))
         {
-            throw new UiAutomationException("Ввод с клавиатуры поддерживает только однострочный текст без управляющих символов.");
+            throw new UiAutomationException("Ввод с клавиатуры не поддерживает управляющие символы, кроме перевода строки.");
         }
 
         Guard(() =>

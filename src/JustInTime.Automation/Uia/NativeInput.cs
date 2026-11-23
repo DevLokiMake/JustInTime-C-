@@ -9,6 +9,8 @@ internal static class NativeInput
     private const uint InputKeyboard = 1;
     private const uint KeyEventFUnicode = 0x0004;
     private const uint KeyEventFKeyUp = 0x0002;
+    private const ushort VkShift = 0x10;
+    private const ushort VkReturn = 0x0D;
 
     public static void TypeUnicode(string text)
     {
@@ -16,6 +18,16 @@ internal static class NativeInput
 
         foreach (var unit in text)
         {
+            if (unit == '\n')
+            {
+                // Shift+Enter: перенос строки в поле, без отправки.
+                inputs.Add(VirtualKey(VkShift, keyUp: false));
+                inputs.Add(VirtualKey(VkReturn, keyUp: false));
+                inputs.Add(VirtualKey(VkReturn, keyUp: true));
+                inputs.Add(VirtualKey(VkShift, keyUp: true));
+                continue;
+            }
+
             inputs.Add(Key(unit, keyUp: false));
             inputs.Add(Key(unit, keyUp: true));
         }
@@ -36,6 +48,22 @@ internal static class NativeInput
                 new Win32Exception(Marshal.GetLastWin32Error()));
         }
     }
+
+    private static Input VirtualKey(ushort key, bool keyUp) => new()
+    {
+        Type = InputKeyboard,
+        Union = new InputUnion
+        {
+            Keyboard = new KeyboardInput
+            {
+                VirtualKey = key,
+                ScanCode = 0,
+                Flags = keyUp ? KeyEventFKeyUp : 0,
+                Time = 0,
+                ExtraInfo = IntPtr.Zero
+            }
+        }
+    };
 
     private static Input Key(char unit, bool keyUp) => new()
     {

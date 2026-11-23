@@ -198,6 +198,18 @@ public sealed class MessagingTests
     }
 
     [Fact]
+    public async Task Multiline_text_reaches_the_adapter_with_unified_line_breaks_when_enabled()
+    {
+        var adapter = new FakeAdapter(MessengerApp.WhatsApp);
+        var executor = new MessageSendExecutor([adapter], new FakeNetwork(), allowMultiline: true);
+
+        await executor.ExecuteAsync(Message(text: "Первая\r\nвторая"), CancellationToken.None);
+
+        Assert.Equal(1, adapter.Calls);
+        Assert.Equal("Первая\nвторая", adapter.Last?.Text);
+    }
+
+    [Fact]
     public async Task Missing_adapter_fails_honestly()
     {
         var executor = new MessageSendExecutor([new FakeAdapter(MessengerApp.Telegram)], new FakeNetwork());

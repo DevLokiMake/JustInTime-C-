@@ -13,7 +13,8 @@ public static class TaskValidator
     public const int MaxArgumentsLength = 2000;
     public const int MaxUrlLength = 2000;
 
-    public static IReadOnlyList<string> Validate(string? title, TaskPayload? payload)
+    public static IReadOnlyList<string> Validate(
+        string? title, TaskPayload? payload, bool allowMultiline = MessagingFeatures.MultilineMessages)
     {
         var errors = new List<string>();
 
@@ -32,7 +33,7 @@ public static class TaskValidator
                 errors.Add(Loc.T("val_no_params"));
                 break;
             case SendMessagePayload message:
-                ValidateMessage(message, errors);
+                ValidateMessage(message, errors, allowMultiline);
                 break;
             case SystemSettingPayload setting:
                 ValidateSetting(setting, errors);
@@ -51,7 +52,7 @@ public static class TaskValidator
         return errors;
     }
 
-    private static void ValidateMessage(SendMessagePayload payload, List<string> errors)
+    private static void ValidateMessage(SendMessagePayload payload, List<string> errors, bool allowMultiline)
     {
         if (!Enum.IsDefined(payload.App))
         {
@@ -90,7 +91,7 @@ public static class TaskValidator
         {
             errors.Add(Loc.T("val_text_empty"));
         }
-        else if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
+        else if (!allowMultiline && payload.Text.Trim().Any(c => c is '\r' or '\n'))
         {
             errors.Add(Loc.T("val_text_multiline"));
         }

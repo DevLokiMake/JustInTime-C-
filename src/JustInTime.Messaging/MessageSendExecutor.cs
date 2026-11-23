@@ -8,7 +8,10 @@ namespace JustInTime.Messaging;
 /// Исполнитель SendMessage. Проверяет данные и интернет, выбирает адаптер и честно переводит его результат в итог задачи.
 /// Результат «неизвестно» никогда не превращается в успех или ошибку: иначе возможен дубль сообщения.
 /// </summary>
-public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters, INetworkStatus network)
+public sealed class MessageSendExecutor(
+    IEnumerable<IMessengerAdapter> adapters,
+    INetworkStatus network,
+    bool allowMultiline = MessagingFeatures.MultilineMessages)
     : ActionExecutor<SendMessagePayload>
 {
     private readonly Dictionary<MessengerApp, IMessengerAdapter> _adapters = adapters.ToDictionary(a => a.App);
@@ -36,7 +39,7 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
             return ExecutionOutcome.Failed(Loc.T("msg_text_empty"));
         }
 
-        if (payload.Text.Trim().Any(c => c is '\r' or '\n'))
+        if (!allowMultiline && payload.Text.Trim().Any(c => c is '\r' or '\n'))
         {
             return ExecutionOutcome.Failed(
                 Loc.T("msg_multiline"));
@@ -57,7 +60,7 @@ public sealed class MessageSendExecutor(IEnumerable<IMessengerAdapter> adapters,
 
         try
         {
-            result = await adapter.SendAsync(new MessageRequest(parsed.Recipient!, payload.Text.Trim()), cancellationToken);
+            result = await adapter.SendAsync(new MessageRequest(parsed.Recipient!, payload.Text.Trim().ReplaceLineEndings("\n")), cancellationToken);
         }
         catch (OperationCanceledException)
         {

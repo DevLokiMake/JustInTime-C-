@@ -86,13 +86,16 @@ internal sealed class FakeUiElement(
 
     public bool TypeTextWorks { get; set; } = true;
 
+    /// <summary>Что получилось в поле после ввода с клавиатуры (по умолчанию ровно введённый текст). Позволяет имитировать \r\n или сработавший Enter.</summary>
+    public Func<string, string>? TypeTextEffect { get; set; }
+
     public void TypeText(string text)
     {
         TypeTextCalls++;
 
         if (TypeTextWorks)
         {
-            Value = text;
+            Value = TypeTextEffect is null ? text : TypeTextEffect(text);
         }
     }
 

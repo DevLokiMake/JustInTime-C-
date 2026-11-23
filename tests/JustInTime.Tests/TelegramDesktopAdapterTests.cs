@@ -21,6 +21,32 @@ public sealed class TelegramDesktopAdapterTests
     }
 
     [Fact]
+    public async Task Multiline_text_is_typed_from_the_keyboard_and_not_written_through_value()
+    {
+        var f = CreateFixture();
+        f.SendButton.OnInvoke = () => f.Composer.Value = string.Empty;
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev", "Первая\nвторая"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Sent, result.Status);
+        Assert.Equal(1, f.Composer.TypeTextCalls);
+        Assert.Equal(0, f.Composer.SetValueCalls);
+        Assert.Equal(1, f.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Multiline_mismatch_is_uncertain_and_never_clicks_send()
+    {
+        var f = CreateFixture();
+        f.Composer.TypeTextEffect = t => t[(t.IndexOf('\n') + 1)..];
+
+        var result = await f.Adapter.SendAsync(Request("@makee_dev", "Первая\nвторая"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Uncertain, result.Status);
+        Assert.Equal(0, f.SendButton.InvokeCount);
+    }
+
+    [Fact]
     public async Task Username_uses_domain_link()
     {
         var f = CreateFixture();
@@ -129,10 +155,10 @@ public sealed class TelegramDesktopAdapterTests
         Assert.Contains("повторно", result.Message);
     }
 
-    private static MessageRequest Request(string raw)
+    private static MessageRequest Request(string raw, string text = "Привет")
     {
         var recipient = RecipientParser.Parse(MessengerApp.TelegramDesktop, raw).Recipient!;
-        return new MessageRequest(recipient, "Привет");
+        return new MessageRequest(recipient, text);
     }
 
     private static Fixture CreateFixture(string telegramProcess = "Telegram", TimeSpan? windowTimeout = null)

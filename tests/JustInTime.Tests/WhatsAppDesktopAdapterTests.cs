@@ -71,6 +71,49 @@ public sealed class WhatsAppDesktopAdapterTests
     }
 
     [Fact]
+    public async Task Multiline_text_is_typed_from_the_keyboard_and_not_written_through_value()
+    {
+        var fixture = CreateFixture();
+        fixture.SendButton.OnInvoke = () => fixture.Composer.Value = string.Empty;
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request("Первая\nвторая\n\nчетвёртая"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Sent, result.Status);
+        Assert.Equal(1, fixture.Composer.TypeTextCalls);
+        Assert.Equal(0, fixture.Composer.SetValueCalls);
+        Assert.Equal(1, fixture.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Multiline_text_matches_even_when_the_field_returns_crlf()
+    {
+        var fixture = CreateFixture();
+        fixture.Composer.TypeTextEffect = t => t.Replace("\n", "\r\n");
+        fixture.SendButton.OnInvoke = () => fixture.Composer.Value = string.Empty;
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request("Первая\nвторая"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Sent, result.Status);
+        Assert.Equal(1, fixture.SendButton.InvokeCount);
+    }
+
+    [Fact]
+    public async Task Multiline_mismatch_is_uncertain_and_never_clicks_send()
+    {
+        // Имитация: Enter сработал как отправка первой строки, в поле осталась только вторая.
+        var fixture = CreateFixture();
+        fixture.Composer.TypeTextEffect = t => t[(t.IndexOf('\n') + 1)..];
+        var adapter = CreateAdapter(fixture);
+
+        var result = await adapter.SendAsync(Request("Первая\nвторая"), CancellationToken.None);
+
+        Assert.Equal(SendStatus.Uncertain, result.Status);
+        Assert.Equal(0, fixture.SendButton.InvokeCount);
+    }
+
+    [Fact]
     public async Task Existing_draft_is_preserved_and_never_sent()
     {
         var fixture = CreateFixture();
@@ -126,10 +169,10 @@ public sealed class WhatsAppDesktopAdapterTests
     private static WhatsAppDesktopAdapter CreateAdapter(Fixture fixture) =>
         new(fixture.Windows, fixture.Launcher, TimeProvider.System);
 
-    private static MessageRequest Request()
+    private static MessageRequest Request(string text = "Привет")
     {
         var recipient = RecipientParser.Parse(MessengerApp.WhatsApp, "+7 701 123 45 67").Recipient!;
-        return new MessageRequest(recipient, "Привет");
+        return new MessageRequest(recipient, text);
     }
 
     private static Fixture CreateFixture()

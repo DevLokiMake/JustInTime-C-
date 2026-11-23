@@ -106,6 +106,21 @@ public sealed class TaskValidatorTests
         Assert.Single(TaskValidator.Validate("t", new SendMessagePayload(MessengerApp.Telegram, "@anna_test", text)));
     }
 
+    [Theory]
+    [InlineData("Первая\nвторая")]
+    [InlineData("Первая\r\nвторая")]
+    public void Multiline_message_is_accepted_when_the_feature_is_enabled(string text)
+    {
+        Assert.Empty(TaskValidator.Validate(
+            "t", new SendMessagePayload(MessengerApp.Telegram, "@anna_test", text), allowMultiline: true));
+    }
+
+    [Fact]
+    public void Multiline_feature_is_off_by_default_until_checked_manually()
+    {
+        Assert.False(MessagingFeatures.MultilineMessages);
+    }
+
     [Fact]
     public void Trailing_line_break_is_trimmed_and_allowed()
     {

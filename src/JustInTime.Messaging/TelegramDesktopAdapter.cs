@@ -78,11 +78,35 @@ public sealed class TelegramDesktopAdapter(
                     Loc.T("msg_field_not_empty", "Telegram", existing.Length));
             }
 
-            field.SetValue(text);
+            // Многострочный текст вводится только с клавиатуры (перенос это Shift+Enter): запись через Value переносы не гарантирует.
+            var multiline = text.Contains('\n');
+
+            if (multiline)
+            {
+                try
+                {
+                    field.TypeText(text);
+                }
+                catch (UiAutomationException ex)
+                {
+                    return NotSentAfterCleanup(field, text, Loc.T("msg_multiline_type_failed", ex.Message));
+                }
+            }
+            else
+            {
+                field.SetValue(text);
+            }
+
             await Task.Delay(SettleDelay, time, cancellationToken);
 
-            if (!string.Equals(field.GetValue(), text, StringComparison.Ordinal))
+            if (!ComposerText.Same(field.GetValue(), text))
             {
+                if (multiline)
+                {
+                    // Enter мог сработать как отправка: часть сообщения могла уйти, поэтому результат неопределённый.
+                    return SendResult.Uncertain(Loc.T("msg_multiline_mismatch", "Telegram"));
+                }
+
                 return NotSentAfterCleanup(field, text, Loc.T("msg_verify_failed", "Telegram"));
             }
 
@@ -279,7 +303,7 @@ public sealed class TelegramDesktopAdapter(
     {
         try
         {
-            if (!string.Equals(field.GetValue(), text, StringComparison.Ordinal))
+            if (!ComposerText.Same(field.GetValue(), text))
             {
                 return null;
             }
