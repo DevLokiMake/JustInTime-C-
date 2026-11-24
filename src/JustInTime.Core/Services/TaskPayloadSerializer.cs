@@ -40,6 +40,8 @@ public static class TaskPayloadSerializer
                     return JsonSerializer.Deserialize<LaunchProgramPayload>(json, Options);
                 case ActionType.OpenUrl:
                     return JsonSerializer.Deserialize<OpenUrlPayload>(json, Options);
+                case ActionType.SetVolume:
+                    return JsonSerializer.Deserialize<SetVolumePayload>(json, Options);
                 default:
                     return null;
             }

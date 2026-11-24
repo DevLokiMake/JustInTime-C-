@@ -430,5 +430,18 @@ public static partial class Strings
         ["reg_list_failed"] = "Could not get the Task Scheduler job list: {0}",
         ["msg_multiline_type_failed"] = "Could not type the multi-line text from the keyboard: {0}",
         ["msg_multiline_mismatch"] = "After typing the multi-line text, the {0} field does not contain the expected text. Enter may have acted as send and part of the message may already have gone out. Check the chat and clear the draft manually; the message is not resent automatically.",
+        ["action_set_volume"] = "Set volume",
+        ["summary_volume"] = "Volume {0}%{1}",
+        ["summary_volume_unmute"] = ", unmute",
+        ["val_volume_range"] = "The volume must be from 0 to 100 percent.",
+        ["edit_volume_level"] = "Volume, % (0-100)",
+        ["edit_volume_unmute"] = "Unmute if muted",
+        ["edit_volume_hint"] = "Changes the master volume of the default output device (what the system mixer shows). Works with a locked screen too.",
+        ["edit_err_volume_level"] = "Enter the volume as a number from 0 to 100.",
+        ["vol_no_device"] = "No default audio output device was found.",
+        ["vol_failed"] = "Could not change the volume: {0}",
+        ["vol_not_confirmed"] = "The volume was set, but Windows reports {0}% instead of {1}%, sound {2}.",
+        ["vol_state_muted"] = "muted",
+        ["vol_state_on"] = "on",
     };
 }

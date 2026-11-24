@@ -11,6 +11,7 @@ public static class ActionTypeExtensions
         ActionType.ToggleSystemSetting => Loc.T("action_system_setting"),
         ActionType.LaunchProgram => Loc.T("action_launch_program"),
         ActionType.OpenUrl => Loc.T("action_open_url"),
+        ActionType.SetVolume => Loc.T("action_set_volume"),
         _ => action.ToString()
     };
 }

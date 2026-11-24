@@ -108,6 +108,24 @@
                                      MaxLength="2000" />
                         </StackPanel>
 
+                        <!-- Громкость -->
+                        <StackPanel Visibility="{Binding IsVolumeAction, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{loc:T edit_volume_level}" Style="{StaticResource FieldLabel}" />
+                            <TextBox Text="{Binding VolumeText, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="140"
+                                     HorizontalAlignment="Left"
+                                     MaxLength="3" />
+
+                            <CheckBox Content="{loc:T edit_volume_unmute}"
+                                      IsChecked="{Binding VolumeUnmute}"
+                                      Margin="0,12,0,0" />
+
+                            <TextBlock Text="{loc:T edit_volume_hint}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.7"
+                                       Margin="0,8,0,0" />
+                        </StackPanel>
+
                         <!-- Открытие ссылки -->
                         <StackPanel Visibility="{Binding IsUrlAction, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{loc:T edit_url}" Style="{StaticResource FieldLabel}" />

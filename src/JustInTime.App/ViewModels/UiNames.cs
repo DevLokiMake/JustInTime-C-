@@ -32,6 +32,7 @@ public static class UiNames
         SystemSettingPayload s => Loc.T("summary_setting", Setting(s.Setting), Loc.T(s.Enable ? "switch_on" : "switch_off")),
         LaunchProgramPayload l => l.ProgramPath,
         OpenUrlPayload u => u.Url,
+        SetVolumePayload v => Loc.T("summary_volume", v.Level, v.Unmute ? Loc.T("summary_volume_unmute") : string.Empty),
         _ => Loc.T("summary_unreadable")
     };
 }

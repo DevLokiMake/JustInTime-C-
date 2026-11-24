@@ -44,6 +44,13 @@ public static class TaskValidator
             case OpenUrlPayload url:
                 ValidateUrl(url, errors);
                 break;
+            case SetVolumePayload volume:
+                if (volume.Level is < SetVolumePayload.MinLevel or > SetVolumePayload.MaxLevel)
+                {
+                    errors.Add(Loc.T("val_volume_range"));
+                }
+
+                break;
             default:
                 errors.Add(Loc.T("val_unknown_action"));
                 break;

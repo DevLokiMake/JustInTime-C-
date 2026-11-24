@@ -88,7 +88,8 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         new(ActionType.SendMessage, UiNames.Action(ActionType.SendMessage)),
         new(ActionType.ToggleSystemSetting, UiNames.Action(ActionType.ToggleSystemSetting)),
         new(ActionType.LaunchProgram, UiNames.Action(ActionType.LaunchProgram)),
-        new(ActionType.OpenUrl, UiNames.Action(ActionType.OpenUrl))
+        new(ActionType.OpenUrl, UiNames.Action(ActionType.OpenUrl)),
+        new(ActionType.SetVolume, UiNames.Action(ActionType.SetVolume))
     ];
 
     public IReadOnlyList<Option<MessengerApp>> AppOptions { get; } =
@@ -168,6 +169,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     [NotifyPropertyChangedFor(nameof(IsSystemAction))]
     [NotifyPropertyChangedFor(nameof(IsProgramAction))]
     [NotifyPropertyChangedFor(nameof(IsUrlAction))]
+    [NotifyPropertyChangedFor(nameof(IsVolumeAction))]
     private Option<ActionType>? _selectedAction;
 
     // Отправка сообщения
@@ -197,6 +199,13 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     // Открытие ссылки
     [ObservableProperty]
     private string _url = string.Empty;
+
+    // Громкость
+    [ObservableProperty]
+    private string _volumeText = "50";
+
+    [ObservableProperty]
+    private bool _volumeUnmute = true;
 
     // Время
     [ObservableProperty]
@@ -238,6 +247,8 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     public bool IsProgramAction => SelectedAction?.Value == ActionType.LaunchProgram;
 
     public bool IsUrlAction => SelectedAction?.Value == ActionType.OpenUrl;
+
+    public bool IsVolumeAction => SelectedAction?.Value == ActionType.SetVolume;
 
     public bool IsRepeating => SelectedRepeat?.Value is not (null or RepeatMode.None);
 
@@ -438,6 +449,9 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
             SelectedSetting?.Value ?? SystemSettingKind.Bluetooth, SelectedSwitch?.Value ?? true),
         ActionType.LaunchProgram => new LaunchProgramPayload(ProgramPath, ProgramArguments),
         ActionType.OpenUrl => new OpenUrlPayload(Url),
+        ActionType.SetVolume => int.TryParse(VolumeText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var level)
+            ? new SetVolumePayload(level, VolumeUnmute)
+            : new SetVolumePayload(-1, VolumeUnmute),   // нечисло: валидатор вернёт понятную ошибку
         _ => null
     };
 
@@ -547,6 +561,10 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
                 break;
             case OpenUrlPayload url:
                 Url = url.Url;
+                break;
+            case SetVolumePayload volume:
+                VolumeText = volume.Level.ToString(CultureInfo.InvariantCulture);
+                VolumeUnmute = volume.Unmute;
                 break;
         }
     }

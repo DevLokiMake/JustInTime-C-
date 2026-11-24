@@ -6,5 +6,6 @@ public enum ActionType
     SendMessage,
     ToggleSystemSetting,
     LaunchProgram,
-    OpenUrl
+    OpenUrl,
+    SetVolume
 }
