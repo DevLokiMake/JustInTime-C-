@@ -29,11 +29,15 @@
                     <TextBlock Text="{loc:T hist_subtitle}" Style="{StaticResource Muted}" Margin="0,2,0,0" />
                 </StackPanel>
 
-                <Button Grid.Column="1"
-                        Content="{loc:T common_refresh}"
-                        Command="{Binding RefreshCommand}"
-                        Style="{StaticResource SecondaryButton}"
-                        VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{loc:T hist_clear}"
+                            Command="{Binding ClearCommand}"
+                            Style="{StaticResource SecondaryButton}"
+                            Margin="0,0,8,0" />
+                    <Button Content="{loc:T common_refresh}"
+                            Command="{Binding RefreshCommand}"
+                            Style="{StaticResource SecondaryButton}" />
+                </StackPanel>
             </Grid>
 
             <!-- Фильтр -->

@@ -46,6 +46,7 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
     private readonly ITaskService _tasks;
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogs;
+    private readonly IDangerConfirmation _danger;
     private readonly IOcrWindowService _ocrWindow;
     private readonly TimeProvider _time;
     private readonly ILogger<TaskEditorViewModel> _logger;
@@ -60,12 +61,14 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         INavigationService navigation,
         TimeProvider time,
         IDialogService dialogs,
+        IDangerConfirmation danger,
         IOcrWindowService ocrWindow,
         ILogger<TaskEditorViewModel> logger)
     {
         _ocrWindow = ocrWindow;
         _tasks = tasks;
         _dialogs = dialogs;
+        _danger = danger;
         _navigation = navigation;
         _time = time;
         _logger = logger;
@@ -294,6 +297,12 @@ public sealed partial class TaskEditorViewModel : ObservableObject, IInitializab
         if (!TryBuildInput(errors, out var input))
         {
             ShowErrors(errors);
+            return;
+        }
+
+        // Умное подтверждение: спрашиваем только про необратимые действия (запуск программы, повторяющаяся отправка).
+        if (!_danger.Confirm(DangerAssessor.ForTask(input.Payload, input.Recurrence is not null)))
+        {
             return;
         }
 

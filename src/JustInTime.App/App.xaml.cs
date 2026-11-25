@@ -6,6 +6,7 @@ using JustInTime.App.ViewModels;
 using JustInTime.Automation;
 using JustInTime.Automation.Session;
 using JustInTime.Automation.Uia;
+using JustInTime.Core.Cli;
 using JustInTime.Core.Localization;
 using JustInTime.Core.Models;
 using JustInTime.Core.Interfaces;
@@ -37,6 +38,7 @@ public partial class App : Application
     private IHost? _host;
     private SchedulerLoop? _loop;
     private bool _headless;
+    private bool _force;
     private SingleInstanceGuard? _singleInstance;
     private AppLifecycle? _lifecycle;
 
@@ -58,6 +60,16 @@ public partial class App : Application
         }
 
         _headless = e.Args.Contains(RunDueArgument, StringComparer.OrdinalIgnoreCase);
+
+        var cli = CliParser.Parse(e.Args);
+        _force = cli.Force;
+
+        if (!_headless && cli.Command != CliCommand.None)
+        {
+            // Командный режим (--list, --cancel, --cancel-all, --clear-history): без окна, с кодом выхода.
+            await RunCliAsync(cli);
+            return;
+        }
 
         if (!_headless)
         {
@@ -85,7 +97,7 @@ public partial class App : Application
 
             Log.Information("Запуск JustInTime{Mode}", _headless ? " (режим --run-due, без окна)" : string.Empty);
 
-            _host = BuildHost(configuration);
+            _host = BuildHost(configuration, _force);
             await _host.StartAsync();
 
             var databaseReady = await InitializeDatabaseAsync(showDialog: !_headless);
@@ -210,7 +222,7 @@ public partial class App : Application
             .CreateLogger();
     }
 
-    private static IHost BuildHost(IConfiguration configuration)
+    private static IHost BuildHost(IConfiguration configuration, bool force)
     {
         return Host.CreateDefaultBuilder()
             .UseContentRoot(AppContext.BaseDirectory)
@@ -273,6 +285,9 @@ public partial class App : Application
                 services.AddSingleton<IOcrWindowService, OcrWindowService>();
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IDialogService, DialogService>();
+                services.AddSingleton(new ConfirmationOptions(force));
+                services.AddSingleton<IDangerConfirmation, DangerConfirmation>();
+                services.AddSingleton<IMaintenanceService, MaintenanceService>();
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
                 services.AddTransient<MyTasksViewModel>();
@@ -340,6 +355,58 @@ public partial class App : Application
             MessageBox.Show(Loc.T("app_dump_failed", ex.Message), "JustInTime", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>
+    /// Командный режим без окна. Справка и ошибки разбора обходятся без базы. Остальные команды работают с задачами
+    /// и историей, опасные спрашивают подтверждение в консоли, если не указан --force / -y.
+    /// </summary>
+    private async Task RunCliAsync(CliRequest cli)
+    {
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        var exitCode = CliExitCode.Error;
+        using var console = new WindowsCliConsole();
+
+        try
+        {
+            if (cli.Command is CliCommand.Help or CliCommand.Invalid)
+            {
+                exitCode = CliRunner.ShowUsage(cli, console);
+            }
+            else
+            {
+                var configuration = ConfigurationFactory.Create();
+                ConfigureLogging(configuration);
+                Log.Information("Командный режим: {Command}, force={Force}", cli.Command, cli.Force);
+
+                _host = BuildHost(configuration, cli.Force);
+                await _host.StartAsync();
+
+                if (!await InitializeDatabaseAsync(showDialog: false))
+                {
+                    console.WriteLine(Loc.T("cli_db_not_ready"));
+                }
+                else
+                {
+                    await ApplyLanguageAsync();
+
+                    var runner = new CliRunner(
+                        _host.Services.GetRequiredService<ITaskService>(),
+                        _host.Services.GetRequiredService<IMaintenanceService>(),
+                        console);
+
+                    exitCode = await runner.RunAsync(cli);
+                    Log.Information("Командный режим завершён, код {Code}", exitCode);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Команда {Command} завершилась ошибкой", cli.Command);
+            console.WriteLine(ex.Message);
+        }
+
+        Shutdown(exitCode);
     }
 
     /// <summary>Режим --run-due: один прогон планировщика без окна, затем выход.</summary>

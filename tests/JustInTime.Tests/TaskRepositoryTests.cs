@@ -407,6 +407,31 @@ public sealed class TaskRepositoryTests(PostgresFixture db) : IAsyncLifetime
     // Журнал
 
     [Fact]
+    public async Task Clearing_history_deletes_finished_attempts_and_keeps_running_ones()
+    {
+        var task = NewTask(Now);
+        await _tasks.AddAsync(task);
+
+        await _history.AddAsync(new ExecutionHistory
+        {
+            TaskId = task.Id, StartedAt = Now, FinishedAt = Now.AddSeconds(5), Result = ExecutionResult.Success
+        });
+        await _history.AddAsync(new ExecutionHistory
+        {
+            TaskId = task.Id, StartedAt = Now.AddMinutes(1), FinishedAt = Now.AddMinutes(1), Result = ExecutionResult.Failed
+        });
+        await _history.AddAsync(new ExecutionHistory { TaskId = task.Id, StartedAt = Now.AddMinutes(2) });
+
+        Assert.Equal(2, await _history.CountFinishedAsync());
+        Assert.Equal(2, await _history.DeleteFinishedAsync());
+
+        var left = await _history.GetRecentAsync(10);
+        Assert.Null(Assert.Single(left).FinishedAt);
+        Assert.Equal(0, await _history.CountFinishedAsync());
+        Assert.NotNull(await _tasks.GetByIdAsync(task.Id));
+    }
+
+    [Fact]
     public async Task History_recent_is_sorted_newest_first_and_failures_are_filtered()
     {
         var task = NewTask(Now);

@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using JustInTime.Core.Interfaces;
+using JustInTime.App.Services;
 using JustInTime.Core.Models;
+using JustInTime.Core.Services;
 using Microsoft.Extensions.Logging;
 using JustInTime.Core.Localization;
 
@@ -20,14 +22,22 @@ public sealed partial class HistoryViewModel : ObservableObject, IInitializableV
     private const int PageSize = 200;
 
     private readonly IExecutionHistoryRepository _history;
+    private readonly IMaintenanceService _maintenance;
+    private readonly IDangerConfirmation _danger;
     private readonly ILogger<HistoryViewModel> _logger;
 
     // Защита от наложения запросов: показываем только результат самого свежего.
     private int _loadVersion;
 
-    public HistoryViewModel(IExecutionHistoryRepository history, ILogger<HistoryViewModel> logger)
+    public HistoryViewModel(
+        IExecutionHistoryRepository history,
+        IMaintenanceService maintenance,
+        IDangerConfirmation danger,
+        ILogger<HistoryViewModel> logger)
     {
         _history = history;
+        _maintenance = maintenance;
+        _danger = danger;
         _logger = logger;
         _selectedFilter = Filters[0];
     }
@@ -62,6 +72,37 @@ public sealed partial class HistoryViewModel : ObservableObject, IInitializableV
     public Task InitializeAsync() => RefreshAsync();
 
     partial void OnSelectedFilterChanged(Option<HistoryFilter>? value) => _ = RefreshAsync();
+
+    /// <summary>Очистка журнала необратима, поэтому всегда с подтверждением (кроме ключа --force / -y).</summary>
+    [RelayCommand]
+    private async Task ClearAsync()
+    {
+        try
+        {
+            var count = await _maintenance.CountFinishedHistoryAsync();
+
+            if (count == 0)
+            {
+                ErrorMessage = Loc.T("hist_clear_none");
+                return;
+            }
+
+            if (!_danger.Confirm(DangerAssessor.ForClearHistory(count)))
+            {
+                return;
+            }
+
+            await _maintenance.ClearHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось очистить журнал");
+            ErrorMessage = Loc.T("hist_load_failed", ex.Message);
+            return;
+        }
+
+        await RefreshAsync();
+    }
 
     [RelayCommand]
     private async Task RefreshAsync()

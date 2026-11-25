@@ -22,6 +22,8 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
     private readonly ITaskService _tasks;
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogs;
+    private readonly IMaintenanceService _maintenance;
+    private readonly IDangerConfirmation _danger;
     private readonly ILogger<MyTasksViewModel> _logger;
 
     // Защита от наложения запросов: показываем только результат самого свежего.
@@ -31,11 +33,15 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
         ITaskService tasks,
         INavigationService navigation,
         IDialogService dialogs,
+        IMaintenanceService maintenance,
+        IDangerConfirmation danger,
         ILogger<MyTasksViewModel> logger)
     {
         _tasks = tasks;
         _navigation = navigation;
         _dialogs = dialogs;
+        _maintenance = maintenance;
+        _danger = danger;
         _logger = logger;
 
         _selectedFilter = Filters[0];
@@ -102,6 +108,39 @@ public sealed partial class MyTasksViewModel : ObservableObject, IInitializableV
         }
 
         await RunAsync(() => _tasks.CancelAsync(item.Id), Loc.T("desc_cancel_task"));
+    }
+
+    /// <summary>Массовая отмена: подтверждение нужно, если задач две и больше.</summary>
+    [RelayCommand]
+    private async Task CancelAllAsync()
+    {
+        try
+        {
+            var count = await _maintenance.CountCancellableAsync();
+
+            if (count == 0)
+            {
+                ErrorMessage = Loc.T("tasks_cancel_all_none");
+                return;
+            }
+
+            if (!_danger.Confirm(DangerAssessor.ForCancelMany(count)))
+            {
+                return;
+            }
+
+            var result = await _maintenance.CancelAllAsync();
+            ErrorMessage = result.Failed == 0
+                ? (result.Problems.Count > 0 ? string.Join(" ", result.Problems) : null)
+                : Loc.T("tasks_cancel_all_partial", result.Done, result.Failed, string.Join(" ", result.Problems));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Не удалось отменить все задачи");
+            ErrorMessage = Loc.T("op_failed", Loc.T("desc_cancel_task"), ex.Message);
+        }
+
+        await LoadAsync();
     }
 
     [RelayCommand]

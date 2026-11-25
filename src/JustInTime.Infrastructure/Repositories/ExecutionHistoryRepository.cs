@@ -38,6 +38,18 @@ public sealed class ExecutionHistoryRepository(IDbContextFactory<JustInTimeDbCon
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<int> CountFinishedAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.ExecutionHistories.CountAsync(h => h.FinishedAt != null, cancellationToken);
+    }
+
+    public async Task<int> DeleteFinishedAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.ExecutionHistories.Where(h => h.FinishedAt != null).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ExecutionHistory>> GetRecentByResultAsync(
         IReadOnlyCollection<ExecutionResult> results, int count, CancellationToken cancellationToken = default)
     {

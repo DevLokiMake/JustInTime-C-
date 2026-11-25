@@ -30,6 +30,10 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{loc:T tasks_cancel_all}"
+                            Command="{Binding CancelAllCommand}"
+                            Style="{StaticResource SecondaryButton}"
+                            Margin="0,0,8,0" />
                     <Button Content="{loc:T common_refresh}"
                             Command="{Binding RefreshCommand}"
                             Style="{StaticResource SecondaryButton}"
